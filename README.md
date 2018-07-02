@@ -3,7 +3,7 @@
 ## Getting Started
 GPUEater is a cloud computing service focusing on Machine Learning and Deep Learning. Now, AMD Radeon GPUs and NVIDIA Quadro GPUs are available. 
 
-This instruction is intended to describe how to set up this API and how to control your instance through this API.
+This document is intended to describe how to set up this API and how to control your instances through this API.
 
 Before getting started, register your account on GPUEater.
 https://www.gpueater.com/
@@ -12,7 +12,7 @@ https://www.gpueater.com/
 1. NodeJS 8.x is required to run GPUEater Console API.
 2. Create a JSON file in accordance with the following instruction.
 
-At first, open your account page(https://www.gpueater.com/console/account) and copy your access_token. Then create a JSON file on ~/.eater
+At first, open your account page(https://www.gpueater.com/console/account) and copy your access_token. The next, create a JSON file on ~/.eater
 
 ```
 {
@@ -33,7 +33,7 @@ or
         }
 }
 ```
-* At this time, permission control for each token are not available. Still in development.
+* At this time, permission control for each token is not available. Still in development.
 
 ### Installing GPUEater API on your system
 
@@ -46,7 +46,7 @@ npm install gpueater
 
 Before launching an instance, you need to decide product, ssh key, OS image. Get each info with the following APIs.
 
-#### Get available on-demand product list.
+#### Get available on-demand product list
 
 This API returns current available on-demand products.
 ```
@@ -89,7 +89,7 @@ gpueater.image_list((e,res)=>{
 
 #### Instance launch
 
-Copy&Paste product, OS image, ssh_key_id for instance launching. 
+Specify product, OS image, and ssh_key for instance launching. 
 
 ```
 const gpueater = require('gpueater');
@@ -120,10 +120,10 @@ gpueater.ondemand_list((e,res)=>{
     }
 });
 ```
-In the case, the request has succeeded, then the API returns the following empty data.
+In the event, the request has succeeded, then the API returns the following empty data.
 {data:null, error:null} 
 
-In the case, some errors occurred during the instance instantiation process, and then the API returns details about the error.
+In the event, errors occurred during the instance instantiation process, then the API returns details about the error.
 
 #### Launched instance list
 
