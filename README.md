@@ -1,19 +1,18 @@
 # GPUEater Console API
 
-
-
-
 ## Getting Started
+GPUEater is a cloud computing service focusing on Machine Learning and Deep Learning. Now, AMD Radeon GPUs and NVIDIA Quadro GPUs are available. 
 
-Register your account on GPUEater.
+This instruction is intended to describe how to set up this API and how to control your instance through this API.
+
+Before getting started, register your account on GPUEater.
 https://www.gpueater.com/
 
-
 ### Prerequisites
+1. NodeJS 8.x is required to run gpueater API.
+2. Create a  JSON file on ~/.eater in accordance with the following instruction.
 
-Prepare JSON config to ~/.eater like this.
-
-Visit to account page(https://www.gpueater.com/console/account) and make sure your application key.
+Open your account page(https://www.gpueater.com/console/account) and copy your access_token.
 
 ```
 {
@@ -34,152 +33,136 @@ or
         }
 }
 ```
-If you make config as specified account, you can control all as administrator.
-For now, access token style and specified account style are same.
-We will provide access permission by token in future, and then it will be have important meaning for security.
+If you create the JSON file, you would be able to control your instance through the API. 
+* Permission management for tokens are still in development.
 
-### Installing
+### Installing GPUEater API on your system
 
-We supported NodeJS 8.x+ API.
-
+Install GPUEater API
 ```
 npm install gpueater
 ```
 
+## Run GPUEater API
 
-## Usage
+Before launching an instance, you need to decide instance type, ssh key, OS image.
 
-#### Product list for on-demand
+#### Get available on-demand product list.
 
-You can make sure what on-demand type is supported.
-This API also provide registered SSH key and default OS image list.
+This API returns current available on-demand product list.
 ```
 const gpueater = require('gpueater');
 
 gpueater.ondemand_list((e,res)=>{
-	if (e) console.error(e);
-	else {
-		console.dir(res);
-	}
+    if (e) console.error(e);
+    else {
+        console.dir(res);
+    }
 });
 ```
+#### Get registered ssh key list
 
-The response object has finder API like this.
-```
-let image = res.find_image('Ubuntu16.04 x64');
-let ssh_key = res.find_ssh_key('registered_my_key');
-let product = res.find_product('a1.vegafe');
-```
-It will be needed information when you launch an instance.
-
-
-#### Registered ssh key list
-
+This API returns your registered ssh keys.
 ```
 const gpueater = require('gpueater');
 
 gpueater.ssh_keys((e,res)=>{
-	if (e) console.error(e);
-	else {
-		console.dir(res);
-	}
+    if (e) console.error(e);
+    else {
+        console.dir(res);
+    }
 });
 ```
 
-#### Default OS image list
+#### Get OS image list
 
+This API returns available OS image list.
 ```
 const gpueater = require('gpueater');
 
 gpueater.image_list((e,res)=>{
-	if (e) console.error(e);
-	else {
-		console.dir(res);
-	}
+    if (e) console.error(e);
+    else {
+        console.dir(res);
+    }
 });
 ```
 
-#### Launched instance list
+#### Instance launch
 
-```
-const gpueater = require('gpueater');
+Specify product, OS image, ssh_key_id for instance launching. 
 
-gpueater.instance_list((e,res)=>{
-	if (e) console.error(e);
-	else {
-		console.dir(res);
-	}
-});
-```
+In the case, the request has succeeded, then the API returns the following empty data.
+{data:null, error:null} 
 
-
-
-#### Launch
-
-You have to specify product_id, image alias, ssh_key_id as form field.
-This API returns empty data like this, when that was successfully.
-{data:null, error:null}
-If that instance got an error, the response has something error information on error property.
+In the case, some errors occurred during the instance instantiation process, and then the API returns details about the error.
 
 ```
 const gpueater = require('gpueater');
 
 gpueater.ondemand_list((e,res)=>{
-	if (e) console.error(e);
-	else {
-		let image = res.find_image('Ubuntu16.04 x64');
-		let ssh_key = res.find_ssh_key('registered_my_key');
-		let product = res.find_product('a1.vega56');
+    if (e) console.error(e);
+    else {
+        let image = res.find_image('Ubuntu16.04 x64');
+        let ssh_key = res.find_ssh_key('brain_master_key');
+        let product = res.find_product('n1.p400');
 
-		if (!image) { console.error(`No available image`);return;}
-		if (!ssh_key) { console.error(`No available ssh-key`);return;}
-		if (!product) { console.error(`No available product`);return;}
+        if (!image) { console.error(`No available image`);return;}
+        if (!ssh_key) { console.error(`No available ssh-key`);return;}
+        if (!product) { console.error(`No available product`);return;}
 
-		let form = {
-			product_id:product.id,
-			image:image.alias,
-			ssh_key_id:ssh_key.id,
-			tag:`johndoe`,
-		};
-		gpueater.launch_ondemand_instance(form,(e,res)=>{
-			if (e) console.error(e);
-			else {
-				console.dir(res);
-			}
-		});
-	}
+        let form = {
+            product_id:product.id,
+            image:image.alias,
+            ssh_key_id:ssh_key.id,
+            tag:`HappyGPUProgramming`,
+        };
+        gpueater.launch_ondemand_instance(form,(e,res)=>{
+            if (e) console.error(e);
+            else {
+                console.dir(res);
+            }
+        });
+    }
 });
 ```
+#### Launched instance list
 
+This API returns your launched instance list.
+```
+const gpueater = require('gpueater');
 
+gpueater.instance_list((e,res)=>{
+    if (e) console.error(e);
+    else {
+        console.dir(res);
+    }
+});
+```
 #### Terminate instance
 
-If you want to terminate any instance, at first, get instance list and then, specify instance.
-Required fields are instance_id and machine_resource_id.
+Before terminating an instance, please get instance info through instance list API. Your instance_id and machine_resource_id are needed to terminate.
 
 ```
 const gpueater = require('gpueater');
 
 gpueater.instance_list((e,res)=>{
-	if (e) console.error(e);
-	else {
-		for (let ins of res.data) {
-			if (ins.tag == 'johndoe') {
-				console.dir(ins);
-				gpueater.terminate_instance(ins,(e,res)=>{
-					if (e) console.error(e);
-					else {
-						console.dir(res);
-					}
-				});
-			}
-		}
-	}
+    if (e) console.error(e);
+    else {
+        for (let ins of res.data) {
+            if (ins.tag == 'HappyGPUProgramming') {
+                console.dir(ins);
+                gpueater.terminate_instance(ins,(e,res)=>{
+                    if (e) console.error(e);
+                    else {
+                        console.dir(res);
+                    }
+                });
+            }
+        }
+    }
 });
 ```
-
-
-
 
 ## License
 
