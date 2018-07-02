@@ -9,10 +9,10 @@ Before getting started, register your account on GPUEater.
 https://www.gpueater.com/
 
 ### Prerequisites
-1. NodeJS 8.x is required to run gpueater API.
-2. Create a  JSON file on ~/.eater in accordance with the following instruction.
+1. NodeJS 8.x is required to run GPUEater Console API.
+2. Create a JSON file in accordance with the following instruction.
 
-Open your account page(https://www.gpueater.com/console/account) and copy your access_token.
+At first, open your account page(https://www.gpueater.com/console/account) and copy your access_token. Then create a JSON file on ~/.eater
 
 ```
 {
@@ -33,8 +33,7 @@ or
         }
 }
 ```
-If you create the JSON file, you would be able to control your instance through the API. 
-* Permission management for tokens are still in development.
+* At this time, permission control for each token are not available. Still in development.
 
 ### Installing GPUEater API on your system
 
@@ -45,11 +44,11 @@ npm install gpueater
 
 ## Run GPUEater API
 
-Before launching an instance, you need to decide instance type, ssh key, OS image.
+Before launching an instance, you need to decide product, ssh key, OS image. Get each info with the following APIs.
 
 #### Get available on-demand product list.
 
-This API returns current available on-demand product list.
+This API returns current available on-demand products.
 ```
 const gpueater = require('gpueater');
 
@@ -76,7 +75,7 @@ gpueater.ssh_keys((e,res)=>{
 
 #### Get OS image list
 
-This API returns available OS image list.
+This API returns available OS images.
 ```
 const gpueater = require('gpueater');
 
@@ -90,12 +89,7 @@ gpueater.image_list((e,res)=>{
 
 #### Instance launch
 
-Specify product, OS image, ssh_key_id for instance launching. 
-
-In the case, the request has succeeded, then the API returns the following empty data.
-{data:null, error:null} 
-
-In the case, some errors occurred during the instance instantiation process, and then the API returns details about the error.
+Copy&Paste product, OS image, ssh_key_id for instance launching. 
 
 ```
 const gpueater = require('gpueater');
@@ -126,9 +120,14 @@ gpueater.ondemand_list((e,res)=>{
     }
 });
 ```
+In the case, the request has succeeded, then the API returns the following empty data.
+{data:null, error:null} 
+
+In the case, some errors occurred during the instance instantiation process, and then the API returns details about the error.
+
 #### Launched instance list
 
-This API returns your launched instance list.
+This API returns your launched instance info.
 ```
 const gpueater = require('gpueater');
 
@@ -141,7 +140,7 @@ gpueater.instance_list((e,res)=>{
 ```
 #### Terminate instance
 
-Before terminating an instance, please get instance info through instance list API. Your instance_id and machine_resource_id are needed to terminate.
+Before terminating an instance, get instance info through instance list API. Your instance_id and machine_resource_id are needed to terminate.
 
 ```
 const gpueater = require('gpueater');
