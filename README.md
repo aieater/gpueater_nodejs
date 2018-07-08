@@ -1,4 +1,4 @@
-# GPUEater Console API
+# GPUEater API Console
 
 ## Getting Started
 GPUEater is a cloud computing service focusing on Machine Learning and Deep Learning. Now, AMD Radeon GPUs and NVIDIA Quadro GPUs are available. 
@@ -9,7 +9,7 @@ Before getting started, register your account on GPUEater.
 https://www.gpueater.com/
 
 ### Prerequisites
-1. NodeJS 8.x is required to run GPUEater Console API.
+1. NodeJS 8.x is required to run GPUEater API console.
 2. Create a JSON file in accordance with the following instruction.
 
 At first, open your account page(https://www.gpueater.com/console/account) and copy your access_token. The next, create a JSON file on ~/.eater
@@ -99,7 +99,7 @@ gpueater.ondemand_list((e,res)=>{
     else {
         let image = res.find_image('Ubuntu16.04 x64');
         let ssh_key = res.find_ssh_key('brain_master_key');
-        let product = res.find_product('n1.p400');
+        let product = res.find_product('a1.rx580');
 
         if (!image) { console.error(`No available image`);return;}
         if (!ssh_key) { console.error(`No available ssh-key`);return;}

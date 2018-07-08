@@ -14,12 +14,12 @@ const path = require('path');
 const req = require('request');
 const HOME = os.homedir();
 const TMP = os.tmpdir();
-const COOKIE_PATH = path.join(TMP,`cookie.txt`);
+const COOKIE_PATH = path.join(TMP,`gpueater_cookie.txt`);
 
 
 
 var base = process.env.GPUEATER_URL||"https://www.gpueater.com";
-var global_header = {};
+var global_header = {"User-Agent":"NodeJS-API"};
 var eater_config = null;
 
 try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (e) {
@@ -36,7 +36,9 @@ try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (
 } 
 try { global_header['Cookie'] = fs.readFileSync(COOKIE_PATH);} catch (e) { }
 
+
 function relogin(res,func) {
+	console.info(`relogin`);
 	info(`POST URL:"${base}/api_login"`);
 	req({url: base+"/api_login", method: 'POST', form: { email:eater_config.gpueater.email, password:eater_config.gpueater.password }, resolveWithFullResponse: true},function(error, response, body){
 		if (error) {
@@ -45,6 +47,7 @@ function relogin(res,func) {
 		} else {
 			global_header['Cookie'] = response.headers['set-cookie'];
 			fs.writeFileSync(COOKIE_PATH,global_header['Cookie']);
+			dir(response.body);
 			func(null,response.body);
 		}
 	});
@@ -53,7 +56,7 @@ function relogin(res,func) {
 
 function login_check(res,func) {
 	try { func(null,JSON.parse(res.body)); } catch (e) {
-		if (res.body.indexOf(`<title>GPUEater:  Login</title>`)>=0) {
+		if (res.body.indexOf(`<title>GPUEater:  Login</title>`)>=0 || res.body.indexOf('/login?state=session_timeout')>=0) {
 			info(`-------------`);
 			relogin(res,(e)=>{
 				if (e) { err(`Could not login`); throw `Could not login`;}
@@ -113,6 +116,7 @@ function launch_ondemand_instance(form,func) {
 	if (!form.product_id) { throw (`product_id is required.`);return;}
 	if (!form.image) { throw (`image is required.`);return;}
 	if (!form.ssh_key_id) { throw (`ssh_key_id is required.`);return;}
+	if (!form.tag) { form.tag = ""; }
 		
 	req.post({url: base+"/console/servers/launch_ondemand_instance", headers:global_header, form:form, resolveWithFullResponse:true, forever:true },function(e, res, body) {
 		if (e) {
