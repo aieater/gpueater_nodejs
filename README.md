@@ -98,8 +98,8 @@ gpueater.ondemand_list((e,res)=>{
     if (e) console.error(e);
     else {
         let image = res.find_image('Ubuntu16.04 x64');
-        let ssh_key = res.find_ssh_key('brain_master_key');
-        let product = res.find_product('a1.rx580');
+        let ssh_key = res.find_ssh_key('master_key');
+        let product = res.find_product('a1.vegafe');
 
         if (!image) { console.error(`No available image`);return;}
         if (!ssh_key) { console.error(`No available ssh-key`);return;}
@@ -140,7 +140,7 @@ gpueater.instance_list((e,res)=>{
 ```
 #### Terminate instance
 
-Before terminating an instance, get instance info through instance list API. Your instance_id and machine_resource_id are needed to terminate.
+Before terminating an instance, get instance info through Launched instance list API. Also, you can directly specify instance_id and machine_resource_id instead of specifing your tag name.
 
 ```
 const gpueater = require('gpueater');
