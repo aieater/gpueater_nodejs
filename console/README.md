@@ -1,7 +1,7 @@
 # GPUEater Command Line API
 
 ## Getting Started
-GPUEater is a cloud computing service focusing on Machine Learning and Deep Learning. Now, AMD Radeon GPUs and NVIDIA Quadro GPUs are available. 
+GPUEater is a cloud computing service focusing on Machine Learning and Deep Learning. Now, AMD Radeon GPUs and NVIDIA Quadro GPUs are available.
 
 This document is intended to describe how to set up this API and how to control your instances through this API.
 
@@ -73,10 +73,11 @@ johndoe@local:~$ gpueater products
  5: n1.p1000   InStock(OK) CPU( 2)  MEM( 4096)MB  SSD(  40)GB  $0.3306/h  Quadro P1000 (4GB)                      
  6: n1.p4000   InStock(OK) CPU( 4)  MEM(10240)MB  SSD(  80)GB  $0.7936/h  Quadro P4000 (8GB)                      
 -----------------------------------------------------
+```
 
 #### Instance launch
 
-Specify product, OS image, and ssh_key for instance launching. 
+Specify product, OS image, and ssh_key for instance launching.
 
 ```
 
@@ -124,7 +125,7 @@ SSH Key > 0
 johndoe@local:~$
 ```
 In the event, the request has succeeded, then the API returns the following empty data.
-{data:null, error:null} 
+{data:null, error:null}
 
 In the event, errors occurred during the instance instantiation process, then the API returns details about the error.
 
@@ -183,7 +184,7 @@ johndoe@local:~$ gpueater instances
 -----------------------------------------------------
  ---- Instances ----
 
-johndoe@local:~$ 
+johndoe@local:~$
 
 ```
 
