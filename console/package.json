@@ -2,7 +2,7 @@
   "name": "gpueater_console",
   "version": "0.0.2",
   "description": "GPUEater API console for shell.",
-  "main": "index.js",
+  "main": "console.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

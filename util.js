@@ -14,7 +14,15 @@ const os = require('os');
 const util = require('util');
 const config = {};
 const stage = process.env.NODE_ENV || config.stage;
-const console_logger = { debug: (s) => { console.log(s); }, info: (s) => { console.log('\033[32m' + s + '\033[0m'); }, warn: (s) => { console.log('\033[31m' + s + '\033[0m'); }, notice: (s) => { console.log('\033[31m' + s + '\033[0m'); }, error: (s) => { console.error('\033[31m' + s + '\033[0m'); }, crit: (s) => { console.error('\033[31m' + s + '\033[0m'); }, alert: (s) => { console.error('\033[31m' + s + '\033[0m'); }, emerg: (s) => { console.error('\033[31m' + s + '\033[0m'); } };
+const console_logger = {
+	debug: (s) => { console.log(s); },
+	info: (s) => { console.log(s); },
+	warn: (s) => { console.log(s); },
+	notice: (s) => { console.log(s); },
+	error: (s) => { console.log(s); },
+	crit: (s) => { console.log(s); },
+	alert: (s) => { console.log(s); },
+	emerg: (s) => { console.log(s); }, };
 var stblogger = { debug: (s) => { }, info: (s) => { }, warn: (s) => { }, notice: (s) => { }, error: (s) => { }, crit: (s) => { }, alert: (s) => { }, emerg: (s) => { } };
 var clogger = stblogger;
 var flogger = stblogger;
@@ -69,12 +77,12 @@ function source_from_stack(num = 0) {
 
 
 
-function enable_console() { if(!(clogger===console_logger)){ clogger = console_logger; console.log(source_from_stack(2));console.log("\033[32m\tCONSOLE-LOG-OUTPUT: ENABLED\033[0m"); } }
-function disable_console() { if(!(clogger===stblogger)){ clogger = stblogger; console.log(source_from_stack(2));console.log("\033[32m\tCONSOLE-LOG-OUTPUT: DISABLED\033[0m"); } }
-function enable_local_log_file() { if(!(flogger===file_logger)){ flogger = file_logger; console.log(source_from_stack(2));console.log("\033[32m\tFILE-LOG-OUTPUT: ENABLED => log/app.log\033[0m"); } }
-function disable_local_log_file() { if(!(flogger===stblogger)){ flogger = stblogger; console.log(source_from_stack(2));console.log("\033[32m\tFILE-LOG-OUTPUT: DISABLED\033[0m"); } }
-function enable_backup() { if(!(logger===network_logger)){ logger = network_logger; console.log(source_from_stack(2));console.log("\033[32m\tAWS-S3-LOG-OUTPUT: ENABLED => s3://pegara/log/*\033[0m"); } }
-function disable_backup() {if(!(logger===stblogger)){  logger = stblogger; console.log(source_from_stack(2));console.log("\033[32m\tAWS-S3-LOG-OUTPUT: DISABLED\033[0m"); } }
+function enable_console() { if(!(clogger===console_logger)){ clogger = console_logger; console.log(source_from_stack(2));console.log("\tCONSOLE-LOG-OUTPUT: ENABLED"); } }
+function disable_console() { if(!(clogger===stblogger)){ clogger = stblogger; console.log(source_from_stack(2));console.log("\tCONSOLE-LOG-OUTPUT: DISABLED"); } }
+function enable_local_log_file() { if(!(flogger===file_logger)){ flogger = file_logger; console.log(source_from_stack(2));console.log("\tFILE-LOG-OUTPUT: ENABLED => log/app.log"); } }
+function disable_local_log_file() { if(!(flogger===stblogger)){ flogger = stblogger; console.log(source_from_stack(2));console.log("\tFILE-LOG-OUTPUT: DISABLED"); } }
+function enable_backup() { if(!(logger===network_logger)){ logger = network_logger; console.log(source_from_stack(2));console.log("\tAWS-S3-LOG-OUTPUT: ENABLED => s3://pegara/log/*"); } }
+function disable_backup() {if(!(logger===stblogger)){  logger = stblogger; console.log(source_from_stack(2));console.log("\tAWS-S3-LOG-OUTPUT: DISABLED"); } }
 
 
 
