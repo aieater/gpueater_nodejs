@@ -1,1 +1,1 @@
-../gpueater.js
+../index.js

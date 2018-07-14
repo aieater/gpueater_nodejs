@@ -10,17 +10,24 @@ function time() { return (new Date).getTime() / 1000.0; } function clone(s) { re
 
 const fs = require('fs');
 const os = require('os');
+const execSync = require('child_process').execSync;
+const exec = require('child_process').exec;
+
 const path = require('path');
 const HOME = os.homedir();
 const TMP = os.tmpdir();
 const readlineSync = require('readline-sync');
+
 const g = require('./gpueater');
+
+
 
 var argv = process.argv;
 
 
 const print = console.log;
 const printe = console.error;
+var administrator_api = process.env.GPUEATER_ADMINISTRATOR;
 
 argv.shift() // node
 argv.shift() // app
@@ -141,7 +148,7 @@ function plot_instances(datas, display = true) {
 	for (let k in datas) {
 		let v = datas[k];
 		ret.push(v);
-		v.view =  ` ${index++}: Tag(${PL(v.tag,10)}) ${PL(v.product_name,10)} CPU(${PR(v.cpu,2)})  MEM(${PR(v.memory,5)})MB  SSD(${PR(v.root_storage,4)})GB  $${PR(v.price,6)}/h  ${PL(v.device_desc,40)}\n    ${v.ssh_command}`;
+		v.view =  ` ${index++}: Tag(${PL(v.tag,10)}) ${PL(v.product_name,10)} CPU(${PR(v.cpu,2)})  MEM(${PR(v.memory,5)})MB  SSD(${PR(v.root_storage,4)})GB ${PL(v.device_desc,40)}\n    ${v.ssh_command}`;
 		if (display) print(v.view);
 	}
 	return ret;
@@ -190,9 +197,9 @@ function ondemand_list(func) {
 function selected(v) { print(` Selected => "${v.view.trim()}"`); }
 
 function ssh2_console(params) {
-	const Connection = require('ssh2'); // npm install ssh2
+	const ssh2 = require('ssh2');
 	let gs = null;
-	const conn = new Connection();
+	const conn = new ssh2();
 	conn.on('ready', function() {
 	  console.log('>> Push enter');
 	    conn.shell(function(err, stream) {
@@ -213,7 +220,7 @@ function ssh2_console(params) {
 	  host: params.host,
 	  port: params.port,
 	  privateKey:require('fs').readFileSync(params.privateKey),
-	  keepaliveInterval:30,
+	  keepaliveInterval:30*1000,
 	  username: params.user,
 	});
 
@@ -229,88 +236,193 @@ function ssh2_console(params) {
 	});
 }
 
-if (f) {
-	if (f == 'instances') {
-		instance_list();
-	} else if (f == 'products') {
-		display_ondemand_list();
-	} else if (f == 'images') {
-	} else if (f == 'ssh_keys') {
-	} else if (f == 'login') {
-		instance_list((e,res)=>{
-			if (e) printe(e);
-			else {
-				let n = ask(`Login > `);
-				let ins = res[n];
-				ssh2_console({user:'root',privateKey:path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`),port:ins.sshd_port,user:ins.sshd_user,host:ins.ipv4});
-			}
-		});
-		
-	} else if (f == 'start') {
-	} else if (f == 'stop') {
-	} else if (f == 'restart') {
-	} else if (f == 'launch') {
-		ondemand_list((e,res)=>{
-			display(`Products`,res.product_list);
-			let n = 0;
-			print(``)
-			n = ask(`Product > `);
-			let p = res.product_list[n];
-			if (!p) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
-			if (p.pool.length == 0) { printe(` Error: "Out of stock" => "${p.view.trim()}"`) }
-			print(``)
-			selected(p);
-			print(``)
-			print(``)
-			display(`Images`,res.image_list);
-			print(``)
-			n = ask(`Image > `);
-			let img = res.image_list[n];
-			if (!img) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
-			print(``)
-			selected(img);
-			print(``)
-			print(``)
-			
-			display(`SSH Keys`,res.ssh_key_list);
-			print(``)
-			n = ask(`SSH Key > `);
-			let ssh_key = res.ssh_key_list[n];
-			if (!ssh_key) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
-			print(``)
-			selected(ssh_key);
-			print(``)
-			print(``)
-			
-			g.launch_ondemand_instance({product_id:p.id,image:img.alias,ssh_key_id:ssh_key.id},(e,res)=>{
-				if (e) { printe(e); }
-				else { print(res); }
+function main(f) {
+
+	if (f) {
+		if (f == 'instances') {
+			instance_list();
+		} else if (f == 'products') {
+			display_ondemand_list();
+		} else if (f == 'images') {
+		} else if (f == 'ssh_keys') {
+		} else if (f == 'login') {
+			instance_list((e,res)=>{
+				if (e) printe(e);
+				else {
+					let n = ask(`Login > `);
+					let ins = res[n];
+					// execSync(ins.ssh_command);
+					ssh2_console({privateKey:path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`),port:ins.sshd_port,user:ins.sshd_user,host:ins.ipv4});
+				}
 			});
+		
+		} else if (f == 'start') {
+		} else if (f == 'stop') {
+		} else if (f == 'restart') {
+		} else if (f == 'cp') {
+			let second = argv.shift();
+			if (second) {
+				print(` Source path => "${second}"`);
+				print(``);
+				let dpath = ask(`Destination path > `);
 			
-		});
-	} else if (f == 'terminate') {
-		instance_list((e,res)=>{
-			if (e) printe(e);
-			else {
-				let n = ask(`Terminate > `);
-				let ins = res[n];
-				if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
-				g.terminate_instance(ins,(e,res)=>{
+				instance_list((e,res)=>{
 					if (e) printe(e);
-					else print(res);
+					else {
+						print(``);
+						let n = ask(`Which instance? > `);
+						print(``);
+						let ins = res[n];
+						if (!ins) { printe(` Error: "Invalid instance number" => "${n}"`);process.exit(9); }
+					
+						let params = {
+						    host: ins.ipv4,
+						    path: dpath,
+						    username: ins.sshd_user,
+							privateKey: fs.readFileSync(path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`)),
+							port: ins.sshd_port,
+						};
+						console.log(path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`));
+					
+						execSync(`scp `);
+					}
 				});
+		
+			} else {
+				print(`Error: Invalid arguments`)
+				print(`[Command] cp [File]`)
 			}
-		});
 		
+		} else if (f == 'sync') {
+		} else if (f == 'tunnel') {
+		} else if (f == 'jupyter') {
+			instance_list((e,res)=>{
+				if (e) printe(e);
+				else {
+					let n = ask(`Connect to > `);
+					let ins = res[n];
+					if (!ins) { printe(` Error: "Invalid instance number" => "${n}"`);process.exit(9); }
+					let port = parseInt(Math.random()*10000+50000);
+					let cmd = ins.ssh_command+" -L ${port}:localhost:${port} \"jupyter notebook --allow-root \"";
+					print(cmd);
+					setTimeout(()=>{execSync(`open http://localhost:${port}/`);},2000);
+					exec(cmd, (err, stdout, stderr) => {
+					  if (err) { console.log(err); }
+					  console.log(stdout);
+					});
+				}
+			});
+		} else if (f == 'launch') {
+			ondemand_list((e,res)=>{
+				display(`Products`,res.product_list);
+				let n = 0;
+				print(``)
+				n = ask(`Product > `);
+				let p = res.product_list[n];
+				if (!p) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+				if (p.pool.length == 0) { printe(` Error: "Out of stock" => "${p.view.trim()}"`) }
+				print(``)
+				selected(p);
+				print(``)
+				print(``)
+				display(`Images`,res.image_list);
+				print(``)
+				n = ask(`Image > `);
+				let img = res.image_list[n];
+				if (!img) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+				print(``)
+				selected(img);
+				print(``)
+				print(``)
+			
+				display(`SSH Keys`,res.ssh_key_list);
+				print(``)
+				n = ask(`SSH Key > `);
+				let ssh_key = res.ssh_key_list[n];
+				if (!ssh_key) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+				print(``)
+				selected(ssh_key);
+				print(``)
+				print(``)
+				print(`Launching...`)
+				let tm = setInterval(()=>{print(".")},1000);
+				g.launch_ondemand_instance({product_id:p.id,image:img.alias,ssh_key_id:ssh_key.id},(e,res)=>{
+					if (e) { printe(e); }
+					else { print(res); }
+					clearInterval(tm);
+				});
+			
+			});
+		} else if (f == 'terminate') {
+			instance_list((e,res)=>{
+				if (e) printe(e);
+				else {
+					let n = ask(`Terminate > `);
+					let ins = res[n];
+					if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+					g.terminate_instance(ins,(e,res)=>{
+						if (e) printe(e);
+						else print(res);
+					});
+				}
+			});
+		
+		} else {
+		
+		}
 	} else {
+		print('')
+		print(`[Command] [Action] [Args...]`);
+		print(`  instnaces/products/launch/terminate/login/cp/sync/sshkey/port/tunnel/network/start/stop/restart`)
+		print(`  `)
+		print(`  Example`)
+		print(`   > gpueater products`)
+		print(`  `)
+		let actions = [
+			{name:'instances',description:'Launched instance list.'},
+			{name:'products',description:'On-demand product list.'},
+			{name:'launch',description:'Launch an on-demand instance.'},
+			{name:'terminate',description:'Terminate an instance.'},
+			{name:'login',description:'Login to a launched instance.'},
+			{name:'cp',description:'Copy a file remote - local.'},
+			{name:'sync',description:'Synchronize directories and files between remote and local.'},
+			{name:'ssh_key',description:'SSH key manager for regsiter, delete, listing.'},
+			{name:'ssh_config',description:'Store config to ~/.ssh/config.'},
+			{name:'port',description:'IPv4 port forward global to instance.'},
+			{name:'tunnel',description:'IPv4 port forward localhost to instance.'},
+			{name:'jupyter',description:'IPv4 port forward localhost to instance and connect to jupyter notebook as 8888.'},
+			{name:'network',description:'Networking information.'},
+			{name:'start',description:'Start an instance.'},
+			{name:'stop',description:'Stop an instance.'},
+			{name:'restart',description:'Restart an instance.'},
+			{name:'machine_resources',description:'Restart an instance.',administrator:true},
+			{name:'networks',description:'Restart an instance.',administrator:true},
+		];
+		let index = 0;
+		print(``);
+		for (let v of actions) {
+			if (v.administrator) {
+				if (administrator_api)
+					print(` ${index++} : ${v.name} - ${v.description}`);
+			} else {
+				print(` ${index++} : ${v.name} - ${v.description}`);
+			}
+		}
+		print(``);
 		
+		let n = ask(` Action > `);
+		let action = null;
+		if (isNaN(parseInt(n))) {
+			for (let v of actions) { if (v.name == n) { action = v;break; } }
+		} else {
+			action = actions[n];
+		}
+		print(``);
+		if (!action) { printe(`Invalid action.`);process.exit(9); }
+		print(``);
+		main(action.name);
+		
+		// instance_list((e,res)=>{
+		// });
 	}
-} else {
-	print('')
-	print(`[Command] [Action] [Args...]`);
-	print(`  instnaces/products/launch/terminate/login`)
-	print(`  `)
-	print(`  Example`)
-	print(`   > gpueater products`)
-	instance_list();
-}
+} main(f);

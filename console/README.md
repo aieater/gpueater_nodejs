@@ -151,7 +151,7 @@ johndoe@local:~$ gpueater login
 -----------------------------------------------------
  ---- Instances ----
  0: Tag(          ) a1.vegafe  CPU( 4)  MEM(15360)MB  SSD( 120)GB  $null/h  Radeon Vega Frontier Edition (16G)      
-    ssh root@172.105.219.37 -p 22 -i ~/.ssh/brain_master_key.pem -o ServerAliveInterval=10
+    ssh root@172.105.219.37 -p 22 -i ~/.ssh/my_ssh_key.pem -o ServerAliveInterval=10
 
 Login > 0
 >> Push enter
@@ -174,7 +174,7 @@ johndoe@local:~$ gpueater terminate
 -----------------------------------------------------
  ---- Instances ----
  0: Tag(          ) a1.vegafe  CPU( 4)  MEM(15360)MB  SSD( 120)GB  $null/h  Radeon Vega Frontier Edition (16G)      
-    ssh root@172.105.219.37 -p 22 -i ~/.ssh/brain_master_key.pem -o ServerAliveInterval=10
+    ssh root@172.105.219.37 -p 22 -i ~/.ssh/my_ssh_key.pem -o ServerAliveInterval=10
 
 Terminate > 0
 

@@ -2,7 +2,7 @@
   "name": "gpueater",
   "version": "0.0.2",
   "description": "GPUEater API console for nodejs.",
-  "main": "gpueater.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/aieater/gpueater#readme",
   "dependencies": {
-    "request": "^2.87.0",
+    "async": "^2.6.1",
+    "request": "^2.87.0"
   }
 }
