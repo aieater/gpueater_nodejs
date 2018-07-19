@@ -1,6 +1,6 @@
 {
   "name": "gpueater",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "GPUEater API console for nodejs.",
   "main": "index.js",
   "scripts": {

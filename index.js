@@ -38,6 +38,8 @@ var base = process.env.GPUEATER_URL||"https://www.gpueater.com";
 var global_header = {"User-Agent":"NodeJS-API"};
 var eater_config = null;
 var administrator_api = process.env.GPUEATER_ADMINISTRATOR;
+var alist=["raccoon", "dog", "wild boar", "rabbit", "cow", "horse", "wolf", "hippopotamus", "kangaroo", "fox", "giraffe", "bear", "koala", "bat", "gorilla", "rhinoceros", "monkey", "deer", "zebra", "jaguar", "polar bear", "skunk", "elephant", "raccoon dog", "animal", "reindeer", "rat", "tiger", "cat", "mouse", "buffalo", "hamster", "panda", "sheep", "leopard", "pig", "mole", "goat", "lion", "camel", "squirrel", "donkey"];
+var blist=["happy", "glad", "comfortable", "pleased", "delighted", "relieved", "calm", "surprised", "exciting"];
 
 try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (e) {
 	try { eater_config = JSON.parse(fs.readFileSync(path.join(HOME,".eater")).toString()); } catch (e) {
@@ -54,479 +56,337 @@ try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (
 try { global_header['Cookie'] = fs.readFileSync(COOKIE_PATH);} catch (e) { }
 
 
-let login = (res,func) => {
+let login = function(func) {
 	info(`POST URL:"${base}/api_login"`);
 	req({url: base+"/api_login", method: 'POST', form: { email:eater_config.gpueater.email, password:eater_config.gpueater.password }, resolveWithFullResponse: true},function(error, response, body){
 		if (error) {
 			err(error);
 			func(error);
 		} else {
-			global_header['Cookie'] = response.headers['set-cookie'];
-			fs.writeFileSync(COOKIE_PATH,global_header['Cookie']);
+			if (response.headers['set-cookie']) {
+				global_header['Cookie'] = response.headers['set-cookie'];
+				fs.writeFileSync(COOKIE_PATH,global_header['Cookie']);
+			}
 			func(null,response.body);
 		}
 	});
 }
 
-let login_check = (res,func) => {
-	try { func(null,JSON.parse(res.body)); } catch (e) {
-		if (res.body.indexOf(`<title>GPUEater:  Login</title>`)>=0 || res.body.indexOf('/login?state=session_timeout')>=0) {
-			info(`-------------`);
-			login(res,(e)=>{
-				if (e) { err(`Could not login`); throw `Could not login`;}
-				else { info(`Logged in`);func(`Logged in`); }
-			});
-		} else { throw e; }
-	}
+
+var func_get = function(api,func,required_fields=[],query={}, e=null, try_cnt=2) {
+	info(api);
+    if (try_cnt <= 0) { func(`Request failed.`); return;}
+	for (let k in required_fields) { if (!(required_fields[k] in query)) { func(`Required field => ${required_fields[k]}`); return; } }
+	req({url: base+api, headers:global_header, qs:query, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
+		if (e) { func(e); }
+		else {
+			if (res.request.uri.href.indexOf("session_timeout")>=0) {
+				login((e,res)=>{
+					if (e) func(e);
+					else func_get(api,func,required_fields,query,e,try_cnt-1);
+				});
+			} else {
+				let j = null;
+				try { j = JSON.parse(body); } catch (e) { info(api);dir(body);err(e); }
+				func(j.error,j.data);
+			}
+		}
+	});
+}
+var func_post = function(api,func,required_fields=[],form={}, e=null, try_cnt=2) {
+	info(api);
+    if (try_cnt <= 0) { func(`Request failed.`); return;}
+	for (let k in required_fields) { if (!(required_fields[k] in form)) { func(`Required field => ${required_fields[k]}`); return; } }
+	req.post({url: base+api, headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
+		if (e) { func(e); }
+		else {
+			if (res.request.uri.href.indexOf("session_timeout")>=0) {
+				login((e,res)=>{
+					if (e) func(e);
+					else func_post(api,func,required_fields,query,e,try_cnt-1);
+				});
+			} else {
+				let j = null;
+				try { j = JSON.parse(body); } catch (e) { info(api);dir(body);err(e); }
+				func(j.error,j.data);
+			}
+		}
+	});
 }
 
-
-let find_ssh_key = (name,res) => {
-	let ssh_keys = res.data.ssh_keys;
-	let ret = null;
-	for (let k in ssh_keys) {
-		let p = ssh_keys[k];
-		if (p.name == name) { ret = p; break;}
+let ResponseProduct = function(res) {
+	if (!res) return null;
+	res.find_ssh_key = function(name) {
+		let ssh_keys = this.ssh_keys;
+		let ret = null;
+		for (let k in ssh_keys) {
+			let p = ssh_keys[k];
+			if (p.name == name) { ret = p; break;}
+		}
+		return ret;
 	}
-	return ret;
-}
 
-let find_image = (name,res) => {
-	let images = res.data.images;
-	let ret = null;
-	for (let k in images) {
-		let p = images[k];
-		if (p.name == name) { ret = p; break;}
-	}
-	return ret;
+	res.find_image = function(name) {
+		let images = this.images;
+		let ret = null;
+		for (let k in images) {
+			let p = images[k];
+			if (p.name == name) { ret = p; break;}
+		}
+		return ret;
 	
+	}
+
+	res.find_product = function(name) {
+		let products = this.products;
+		let ret = null;
+		for (let k in products) {
+			let p = products[k];
+			if (p.name == name && p.limited == false) { ret = p; break;}
+		}
+		return ret;
+	}
+	return res;
 }
 
-let find_product = (name,res) => {
-	let products = res.data.products;
-	let ret = null;
-	for (let k in products) {
-		let p = products[k];
-		if (p.name == name && p.limited == false) { ret = p; break;}
-	}
-	return ret;
-}
+
 
 
 
 
 function _________ssh__________(func) {}
-
-function ssh_key_list(func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(func);};
-	req({url: base+"/console/servers/ssh_keys", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function generate_ssh_key(func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(func);};
-	req({url: base+"/console/servers/ssh_key_gen", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-	
-}
-
-function register_ssh_key(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	if (!form.name) { throw (`name is required.`);return;}
-	if (!form.public_key) { throw (`public_key is required.`);return;}
-	form.register_ssh_key_name = form.name;
-	form.register_ssh_key_public_key = form.public_key;
-	
-	let valid = false;
+var check_public_key = function(e) {
 	let s = form.public_key;
 	if (s && s.indexOf('ssh-rsa ') == 0) {
 		if (s.length < 1000) {
 			if (s.replace(/\t|\r|\n/g, "").replace(/[a-zA-Z0-9]|\/|-|\+| |\.|@/g, "") == 0) {
-				valid = true;;
+				return true;
 			}
 		}
 	}
-	if (!valid) {throw `Invalid public key.`; return;}
-	
-	
-	req.post({url: base+"/console/servers/register_ssh_key", headers:global_header, resolveWithFullResponse:true,form:form, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-	
+	return false;
 }
-
-function delete_ssh_key(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	if (!form.id) { throw (`id is required.`);return;}
-	req.post({url: base+"/console/servers/delete_ssh_key", headers:global_header, resolveWithFullResponse:true,form:form, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {console.dir(j);info(`OK`);func(j.error,j.data)} });
-		}
+function ssh_key_list(func) { func_get("/console/servers/ssh_keys",(e,res)=>{func(e,res)}, [], {}); }
+function generate_ssh_key(func) { func_get("/console/servers/ssh_key_gen",(e,res)=>{func(e,res)}, [], {}); }
+function register_ssh_key(form,func) { func_post("/console/servers/register_ssh_key",(e,res)=>{func(e,res)}, ["name","public_key"], form); }
+function delete_ssh_key(form,func) { func_post("/console/servers/delete_ssh_key",(e,res)=>{func(e,res)}, ["id"], form); }
+var test_ssh_key = function() {
+	const async = require('async');
+	async.waterfall([
+		function(callback) {
+			ssh_key_list((e,s)=>{
+				async.eachSeries(s,function(it,callback){
+					if (it.name == "nodejs_ssh_key") {
+						delete_ssh_key({id:it.id},(e,s)=>{callback(e)});
+					} else {
+						callback();
+					}
+				},function(e,s){
+					callback(e);
+				});
+			});
+		},
+		function(callback) {
+			generate_ssh_key((e,s)=>{
+				dir([e,s]);
+				if (!e) {
+					let fpath = path.join(HOME,'.ssh','nodejs_ssh_key.pem');
+					fs.writeFileSync(fpath,s.private_key);
+					register_ssh_key({name:"nodejs_ssh_key", public_key:s.public_key},(e,s)=>{ callback(e||s.error); });
+				} else {
+					callback(e)
+				}
+			});
+		},
+		function(callback) {
+			ssh_key_list((e,s)=>{dir([e,s]);callback(e)});
+		},
+	],function(e,s) {
+		if (e) err(e);
 	});
 }
 
 function _________image__________(func) {}
-
-function image_list(func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(func);};
-	req({url: base+"/console/servers/images", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-	
+function image_list(func) { func_get("/console/servers/images",(e,res)=>{func(e,res)}, [], {}); }
+function snapshot_instance(form,func) { throw "Not supported yet"; }
+function delete_snapshot(form,func) { throw "Not supported yet"; }
+function create_image(form,func) { throw "Not supported yet"; }
+function register_image(form,func) { throw "Not supported yet"; }
+function delete_image(form,func) { throw "Not supported yet"; }
+var test_image = function() {
+	image_list((e,s)=>{dir([e,s])});
 }
 
 
-
+// j.find_ssh_key = (name)=>{return find_ssh_key(name,j);}
+// j.find_image = (name)=>{return find_image(name,j);}
+// j.find_product = (name)=>{return find_product(name,j);}
+// ins.ssh_command = `ssh root@${ins.ipv4} -p 22 -i ~/.ssh/${ins.ssh_key_file_name}.pem -o ServerAliveInterval=10`;
 function _________instance__________(func) {}
-
-
-function ondemand_list(func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(func);};
-	req({url: base+"/console/servers/ondemand_launch_list", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {
-				j.find_ssh_key = (name)=>{return find_ssh_key(name,j);}
-				j.find_image = (name)=>{return find_image(name,j);}
-				j.find_product = (name)=>{return find_product(name,j);}
-				func(null,j);
-			} });
-		}
+function ondemand_list(func) { func_get("/console/servers/ondemand_launch_list",(e,res)=>{func(e,ResponseProduct(res))}, [], {}); }
+function launch_ondemand_instance(form,func) { func_post("/console/servers/launch_ondemand_instance",(e,res)=>{func(e,res)}, ["product_id","image","ssh_key_id","tag"], form); }
+function subscription_list(func) { throw "Not supported yet"; }
+function launch_subcription_instance(form,func) { throw "Not supported yet"; }
+function instance_list(func) { func_get("/console/servers/instance_list",(e,res)=>{func(e,res)}, [], {}); }
+function change_instance_tag(form,func) { func_post("/console/servers/change_instance_tag",(e,res)=>{func(e,res)}, ["instance_id","tag"], form); }
+function start_instance(form,func) { func_post("/console/servers/start",(e,res)=>{func(e,res)}, ["instance_id","machine_resource_id"], form); }
+function stop_instance(form,func) { func_post("/console/servers/stop",(e,res)=>{func(e,res)}, ["instance_id","machine_resource_id"], form); }
+function restart_instance(form,func) { stop_instance(form,(e,s)=>{if (e) func(e); else {start_instance(form,func);} }); }
+function terminate_instance(form,func) { func_post("/console/servers/force_terminate",(e,res)=>{func(e,res)}, ["instance_id","machine_resource_id"], form); }
+function emergency_restart_instance(form,func) { func_post("/console/servers/emergency_restart",(e,res)=>{func(e,res)}, ["instance_id","machine_resource_id"], form); }
+var test_instance = function() {
+	const async = require('async');
+	async.waterfall([
+		function(callback) {
+			instance_list((e,s)=>{
+				async.eachSeries(s,(o,callback)=>{
+					terminate_instance(o,(e,s)=>{callback(e)});
+				},function(e,s) {
+					callback(e,s)
+				});
+			});
+		},
+		function(s,callback) {
+			ondemand_list((e,s)=>{
+				callback(e,s);
+			});
+		},
+		function(s,callback) {
+			let ssh_key = s.find_ssh_key("nodejs_ssh_key");
+			let image = s.find_image("Ubuntu16.04 x64");
+			let product = s.find_product("n1.p400");
+			let tag = "HogeHoge";
+			dir(ssh_key);
+			dir(image);
+			dir(product);
+			launch_ondemand_instance({ssh_key_id:ssh_key.id, image:image.alias, product_id:product.id, tag:tag},(e,s)=>{
+				callback(e,s);
+			});
+		},
+		function(s,callback) {
+			instance_list((e,s)=>{callback(e,s)});
+		},
+		function(s,callback) {
+			stop_instance(s[0],(e,res)=>{
+				callback(e,s);
+			});
+		},
+		function(s,callback) {
+			start_instance(s[0],(e,res)=>{
+				callback(e,s);
+			});
+		},
+		function(s,callback) {
+			instance_list((e,s)=>{callback(e,s)});
+		},
+	],function(e,s) {
+		dir([e,s]);
 	});
 }
 
-function subscription_list(func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(func);};
-	req({url: base+"/console/servers/subscription_launch_list", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {
-				j.find_ssh_key = (name)=>{return find_ssh_key(name,j);}
-				j.find_image = (name)=>{return find_image(name,j);}
-				j.find_product = (name)=>{return find_product(name,j);}
-				func(null,j);
-			} });
-		}
+function _________network__________(func) {}
+function port_list(form,func) { func_get("/console/servers/port_list",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function open_port(form,func) { func_post("/console/servers/add_port",(e,res)=>{func(e,res)}, ["instance_id","connection_id","port"], form); }
+function close_port(form,func) { func_post("/console/servers/delete_port",(e,res)=>{func(e,res)}, ["instance_id","connection_id","port"], form); }
+function renew_ipv4(form,func) { func_get("/console/servers/renew_ipv4",(e,res)=>{func(e,res)}, ["instance_id"], form); }
+function refresh_ipv4(form,func) { func_get("/console/servers/refresh_ipv4",(e,res)=>{func(e,res)}, ["instance_id"], form); }
+function network_description(form,func) { func_get("/console/servers/instance_info",(e,res)=>{func(e,res)}, ["instance_id"], form); }
+var test_network = function() {
+	const async = require('async');
+	async.waterfall([
+		function(callback) {
+			instance_list((e,s)=>{
+				let ins = s[0];
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			port_list(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			ins.port = 9999;
+			open_port(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			port_list(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			ins.port = 9999;
+			close_port(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			port_list(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			network_description(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+	],function(e,s) {
 	});
 }
+//test_network();
 
+function _________storage__________(func) {}
+function create_volume(func) { throw "Not supported yet"; }
+function delete_volume(func) { throw "Not supported yet"; }
+function transfer_volume(func) { throw "Not supported yet"; }
 
-function launch_ondemand_instance(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	
-	if (!form.product_id) { throw (`product_id is required.`);return;}
-	if (!form.image) { throw (`image is required.`);return;}
-	if (!form.ssh_key_id) { throw (`ssh_key_id is required.`);return;}
-	if (!form.tag) { form.tag = ""; }
-	
-	req.post({url: base+"/console/servers/launch_ondemand_instance", headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
+function _________subscription__________(func) {}
+function subscription_instance_list(func) { throw "Not supported yet"; }
+function subscription_storage_list(func) { throw "Not supported yet"; }
+function subscription_network_list(func) { throw "Not supported yet"; }
+function subscribe_instance(func) { throw "Not supported yet"; }
+function unsubscribe_instance(func) { throw "Not supported yet"; }
+function subscribe_storage(func) { throw "Not supported yet"; }
+function unsubscribe_storage(func) { throw "Not supported yet"; }
+function subscribe_network(func) { throw "Not supported yet"; }
+function unsubscribe_network(func) { throw "Not supported yet"; }
 
-function launch_subcription_instance(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	
-	if (!form.product_id) { throw (`product_id is required.`);return;}
-	if (!form.image) { throw (`image is required.`);return;}
-	if (!form.ssh_key_id) { throw (`ssh_key_id is required.`);return;}
-	if (!form.tag) { form.tag = ""; }
-	
-	req.post({url: base+"/console/servers/launch_subscription_instance", headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
+function _________special__________(func) {}
+function live_migration(func) { throw "Not supported yet"; }
+function live_migration_for_admin(func) { throw "Not supported yet"; }
+function cancel_transaction(func) { throw "Not supported yet"; }
 
-function instance_list(func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(func);};
-	req({url: base+"/console/servers/instance_list", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {
-				for (let k in j.data) {
-					let ins = j.data[k];
-					ins.ssh_command = `ssh root@${ins.ipv4} -p 22 -i ~/.ssh/${ins.ssh_key_file_name}.pem -o ServerAliveInterval=10`;
-				}
-				func(j.error,j.data);
-			} });
-		}
-	});
-}
+function _________payment__________(func) {}
+function invoice_list(func) { func_get("/console/servers/charge_list",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function subscription_invoice_list(func) { throw "Not supported yet"; }
+function make_invoice(func) { throw "Not supported yet"; }
 
-function instance_description(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	req({url: base+"/console/servers/instance_info", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function start_instance(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	let instances = [];
-	
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	if (!form.machine_resource_id) { throw (`machine_resource_id is required.`);return;}
-	
-	instances.push({instance_id:form.instance_id,machine_resource_id:form.machine_resource_id});
-	
-	req.post({url: base+"/console/servers/start", headers:global_header, form:{instances:JSON.stringify(instances)}, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-	
-}
-
-function stop_instance(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	let instances = [];
-	
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	if (!form.machine_resource_id) { throw (`machine_resource_id is required.`);return;}
-	
-	instances.push({instance_id:form.instance_id,machine_resource_id:form.machine_resource_id});
-	
-	req.post({url: base+"/console/servers/stop", headers:global_header, form:{instances:JSON.stringify(instances)}, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-	
-}
-
-function restart_instance(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	let instances = [];
-	
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	if (!form.machine_resource_id) { throw (`machine_resource_id is required.`);return;}
-	
-	instances.push({instance_id:form.instance_id,machine_resource_id:form.machine_resource_id});
-	
-	req.post({url: base+"/console/servers/restart", headers:global_header, form:{instances:JSON.stringify(instances)}, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-
-function emergency_restart_instance(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	let instances = [];
-	
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	if (!form.machine_resource_id) { throw (`machine_resource_id is required.`);return;}
-	
-	instances.push({instance_id:form.instance_id,machine_resource_id:form.machine_resource_id});
-	
-	req.post({url: base+"/console/servers/emergency_restart", headers:global_header, form:{instances:JSON.stringify(instances)}, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-
-function terminate_instance(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	let instances = [];
-	
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	if (!form.machine_resource_id) { throw (`machine_resource_id is required.`);return;}
-	
-	instances.push({instance_id:form.instance_id,machine_resource_id:form.machine_resource_id});
-	
-	req.post({url: base+"/console/servers/force_terminate", headers:global_header, form:{instances:JSON.stringify(instances)}, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function change_instance_tag(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	if (!form.tag) { throw (`tag is required.`);return;}
-	
-	req.post({url: base+"/console/servers/change_instance_tag", headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-
-function _________port__________(func) {}
-
-function port_list(func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(func);};
-	req({url: base+"/console/servers/port_list", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function open_port(form, func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	if (!ins.connection_id) { throw (`connection_id is required.`);return;}
-	if (!ins.instance_id) { throw (`instance_id is required.`);return;}
-	if (!ins.port) { throw (`port is required.`);return;}
-	
-	req.post({url: base+"/console/servers/add_port", headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-	
-}
-
-function close_port(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	if (!ins.connection_id) { throw (`connection_id is required.`);return;}
-	if (!ins.instance_id) { throw (`instance_id is required.`);return;}
-	if (!ins.port) { throw (`port is required.`);return;}
-	req.post({url: base+"/console/servers/delete_port", headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function renew_ipv4(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	req.post({url: base+"/console/servers/renew_ipv4", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function refresh_ipv4(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	if (!form.instance_id) { throw (`instance_id is required.`);return;}
-	req.post({url: base+"/console/servers/refresh_ipv4", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
 
 
 
 function _________administrator__________(func) {}
+function machine_resource_list_for_admin(func) { func_get("/console/servers/machine_resource_list_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function instance_list_for_admin(func) { func_get("/console/servers/instance_list_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function products_for_admin(func) { func_get("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function launch_as_admin(form,func) { func_post("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
 
-function machine_resource_list_for_admin(func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(func);};
-	req({url: base+"/console/servers/machine_resource_list_for_admin", headers:global_header, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function instance_list_for_admin(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	req.post({url: base+"/console/servers/instance_list_for_admin", headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function products_for_admin(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	req.post({url: base+"/console/servers/products_for_admin", headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-function launch_as_admin(form,func) {
-	let _fnc_ = eval(__function); info(__function); let self_callback = ()=>{_fnc_(form,func);};
-	
-	if (!form.product_id) { throw (`product_id is required.`);return;}
-	if (!form.image) { throw (`image is required.`);return;}
-	if (!form.ssh_key_id) { throw (`ssh_key_id is required.`);return;}
-	if (!form.tag) { form.tag = ""; }
-	
-	req.post({url: base+"/console/servers/launch_as_admin", headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
-		if (e) {
-			func(e);
-		} else {
-			login_check(res,(e,j)=>{ if (e) {self_callback();} else {info(`OK`);func(j.error,j.data)} });
-		}
-	});
-}
-
-
+function _________extensions__________(func) {}
+function copy_file(form,func) {throw "Not implemented yet";}
+function delete_file(form,func) {throw "Not implemented yet";}
+function move_file(func) {throw "Not implemented yet";}
+function make_directory(func) {throw "Not implemented yet";}
+function file_list(func) {throw "Not implemented yet";}
+function synchronize_files(func) {throw "Not implemented yet";}
+function login_instance(func) {throw "Not implemented yet";}
+function tunnel(func) {throw "Not implemented yet";}
 
 
 
@@ -550,7 +410,6 @@ if (require.main === module) {
 		}
 		exports += "}\n";
 		let fstream = ret.join("\n")+"\n"+exports;
-		log(fstream);
 		fs.writeFileSync('./index.js',fstream);
 	}
 	generate_source();
@@ -565,27 +424,64 @@ module.exports = {
 	delete_ssh_key: delete_ssh_key,
 	_________image__________: _________image__________,
 	image_list: image_list,
+	snapshot_instance: snapshot_instance,
+	delete_snapshot: delete_snapshot,
+	create_image: create_image,
+	register_image: register_image,
+	delete_image: delete_image,
 	_________instance__________: _________instance__________,
 	ondemand_list: ondemand_list,
-	subscription_list: subscription_list,
 	launch_ondemand_instance: launch_ondemand_instance,
+	subscription_list: subscription_list,
 	launch_subcription_instance: launch_subcription_instance,
 	instance_list: instance_list,
-	instance_description: instance_description,
+	change_instance_tag: change_instance_tag,
 	start_instance: start_instance,
 	stop_instance: stop_instance,
 	restart_instance: restart_instance,
 	terminate_instance: terminate_instance,
-	change_instance_tag: change_instance_tag,
-	_________port__________: _________port__________,
+	emergency_restart_instance: emergency_restart_instance,
+	_________network__________: _________network__________,
 	port_list: port_list,
 	open_port: open_port,
 	close_port: close_port,
 	renew_ipv4: renew_ipv4,
 	refresh_ipv4: refresh_ipv4,
+	network_description: network_description,
+	_________storage__________: _________storage__________,
+	create_volume: create_volume,
+	delete_volume: delete_volume,
+	transfer_volume: transfer_volume,
+	_________subscription__________: _________subscription__________,
+	subscription_instance_list: subscription_instance_list,
+	subscription_storage_list: subscription_storage_list,
+	subscription_network_list: subscription_network_list,
+	subscribe_instance: subscribe_instance,
+	unsubscribe_instance: unsubscribe_instance,
+	subscribe_storage: subscribe_storage,
+	unsubscribe_storage: unsubscribe_storage,
+	subscribe_network: subscribe_network,
+	unsubscribe_network: unsubscribe_network,
+	_________special__________: _________special__________,
+	live_migration: live_migration,
+	live_migration_for_admin: live_migration_for_admin,
+	cancel_transaction: cancel_transaction,
+	_________payment__________: _________payment__________,
+	invoice_list: invoice_list,
+	subscription_invoice_list: subscription_invoice_list,
+	make_invoice: make_invoice,
 	_________administrator__________: _________administrator__________,
 	machine_resource_list_for_admin: machine_resource_list_for_admin,
 	instance_list_for_admin: instance_list_for_admin,
 	products_for_admin: products_for_admin,
 	launch_as_admin: launch_as_admin,
+	_________extensions__________: _________extensions__________,
+	copy_file: copy_file,
+	delete_file: delete_file,
+	move_file: move_file,
+	make_directory: make_directory,
+	file_list: file_list,
+	synchronize_files: synchronize_files,
+	login_instance: login_instance,
+	tunnel: tunnel,
 }

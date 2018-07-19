@@ -17,17 +17,114 @@ const async = require('async');
 //
 
 function func(){}
+//instance_description
 
-gpueater.machine_resource_list_for_admin((e,res)=>{
+gpueater.invoice_list((e,res)=>{
     if (e) console.error(e);
     else {
-		for (let m of res) {
-			console.log(`${m.node_type} : ${m.server_label} : ssh ${m.sshd_user}@${m.network_ipv6?m.network_ipv6:m.network_ipv4} -p ${m.sshd_port} -i ~/.ssh/brain_master_key.pem -o ServerAliveInterval=10`);
-		}
-		// console.dir(res);
+    	console.dir(res);
     }
-	func();
 });
+
+
+// gpueater.instance_list((e,res)=>{
+//     if (e) console.error(e);
+//     else {
+// 		for (let m of res) { // Stop all
+// 			gpueater.renew_ipv4(m,(e,res)=>{
+// 			    if (e) console.error(e);
+// 			    else {
+// 					console.dir(res);
+// 			    }
+// 				func();
+// 			});
+// 		}
+//     }
+// 	func();
+// });
+
+// gpueater.instance_list((e,res)=>{
+//     if (e) console.error(e);
+//     else {
+// 		for (let m of res) {
+// 			gpueater.network_description(m,(e,res)=>{
+// 			    if (e) console.error(e);
+// 				else console.dir(res);
+// 			});
+// 		}
+//     }
+// 	func();
+// });
+
+
+// gpueater.instance_list((e,res)=>{
+//     if (e) console.error(e);
+//     else {
+// 		for (let m of res) { // Open all
+// 			m.port = 12345;
+// 			gpueater.close_port(m,(e,res)=>{
+// 			    if (e) console.error(e);
+// 			    else {
+// 					console.dir(res);
+// 			    }
+// 				func();
+// 			});
+// 		}
+//     }
+// 	func();
+// });
+
+// gpueater.instance_list((e,res)=>{
+//     if (e) console.error(e);
+//     else {
+// 		for (let m of res) { // Open all
+// 			m.port = 12345;
+// 			gpueater.open_port(m,(e,res)=>{
+// 			    if (e) console.error(e);
+// 			    else {
+// 					console.dir(res);
+// 			    }
+// 				func();
+// 			});
+// 		}
+//     }
+// 	func();
+// });
+// gpueater.instance_list((e,res)=>{
+//     if (e) console.error(e);
+//     else {
+// 		for (let m of res) { // Stop all
+// 			gpueater.port_list(m,(e,res)=>{
+// 			    if (e) console.error(e);
+// 			    else {
+// 					console.dir(res);
+// 			    }
+// 				func();
+// 			});
+// 		}
+//     }
+// 	func();
+// });
+
+
+// gpueater.instance_list((e,res)=>{
+//     if (e) console.error(e);
+//     else {
+// 		console.dir(res);
+// 		for (let m of res) { // Stop all
+// 			gpueater.restart_instance(m,(e,res)=>{
+// 			    if (e) console.error(e);
+// 				else console.dir(res);
+// 			});
+// 		}
+//     }
+// 	func();
+// });
+
+
+
+
+
 // gpueater.machine_resource_list_for_admin((e,res)=>{
 //     if (e) console.error(e);
 //     else {
