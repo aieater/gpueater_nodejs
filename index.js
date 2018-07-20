@@ -12,9 +12,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const req = require('request');
+const crypto = require("crypto");
+
 const HOME = os.homedir();
 const TMP = os.tmpdir();
 const COOKIE_PATH = path.join(TMP,`gpueater_cookie.txt`);
+const CONFIG_HASH_PATH = path.join(TMP,`gpueater_config_hash.txt`);
 const FOEVER = false;
 
 Object.defineProperty(global, '__stack', {
@@ -53,7 +56,18 @@ try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (
 		console.info(`GPUEater config saved to ${path.join(HOME,".eater")}.`);
 	} 	
 } 
-try { global_header['Cookie'] = fs.readFileSync(COOKIE_PATH);} catch (e) { }
+
+let stored_hash = "A";
+let hash = "B";
+try {stored_hash = fs.readFileSync(CONFIG_HASH_PATH);} catch (e) {}
+hash = crypto.createHmac('sha256', 'dummy').update(JSON.stringify(eater_config)).digest('hex');
+
+if (stored_hash == hash) {
+	try { global_header['Cookie'] = fs.readFileSync(COOKIE_PATH);} catch (e) { }
+} else {
+	fs.writeFileSync(CONFIG_HASH_PATH,hash);
+}
+
 
 
 let login = function(func) {
@@ -80,14 +94,16 @@ var func_get = function(api,func,required_fields=[],query={}, e=null, try_cnt=2)
 	req({url: base+api, headers:global_header, qs:query, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
 		if (e) { func(e); }
 		else {
-			if (res.request.uri.href.indexOf("session_timeout")>=0) {
+			if (res.request.uri.path == "/") {
+				func(`Could not access.`);
+			} else if (res.request.uri.href.indexOf("session_timeout")>=0) {
 				login((e,res)=>{
 					if (e) func(e);
-					else func_get(api,func,required_fields,query,e,try_cnt-1);
+					else setTimeout(()=>{func_get(api,func,required_fields,query,e,try_cnt-1);},parseInt(Math.exp(-try_cnt)*5000));
 				});
 			} else {
-				let j = null;
-				try { j = JSON.parse(body); } catch (e) { info(api);dir(body);err(e); }
+				let j = {};
+				try { j = JSON.parse(body); } catch (e) { info(api);dir(body);err(e); j.error = `Error`; }
 				func(j.error,j.data);
 			}
 		}
@@ -100,14 +116,16 @@ var func_post = function(api,func,required_fields=[],form={}, e=null, try_cnt=2)
 	req.post({url: base+api, headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
 		if (e) { func(e); }
 		else {
-			if (res.request.uri.href.indexOf("session_timeout")>=0) {
+			if (res.request.uri.path == "/") {
+				func(`Could not access.`);
+			} else if (res.request.uri.href.indexOf("session_timeout")>=0) {
 				login((e,res)=>{
 					if (e) func(e);
-					else func_post(api,func,required_fields,query,e,try_cnt-1);
+					else setTimeout(()=>{func_post(api,func,required_fields,query,e,try_cnt-1);},parseInt(Math.exp(-try_cnt)*5000));
 				});
 			} else {
-				let j = null;
-				try { j = JSON.parse(body); } catch (e) { info(api);dir(body);err(e); }
+				let j = {};
+				try { j = JSON.parse(body); } catch (e) { info(api);dir(body);err(e); j.error = `Error`; }
 				func(j.error,j.data);
 			}
 		}
@@ -149,13 +167,62 @@ let ResponseProduct = function(res) {
 	return res;
 }
 
+let InstancesResponse = function(res) {
+	for (let k in res) {
+		let ins = res[k];
+		ins.ssh_command = `ssh root@${ins.ipv4} -p 22 -i ~/.ssh/${ins.ssh_key_file_name}.pem -o ServerAliveInterval=10`;
+	}
+	return res;
+}
 
 
 
+
+
+var ssh2_console = function(params) {
+	const ssh2 = require('ssh2');
+	let gs = null;
+	const conn = new ssh2();
+	conn.on('ready', function() {
+	  console.log('>> Press enter key');
+	    conn.shell(function(err, stream) {
+	      if (err) throw err;
+	      stream.on('close', function() {
+	        console.log('Stream :: close');
+	        conn.end();
+	        process.exit(1);
+	      }).on('data', function(data) {
+	        if (!gs) gs = stream;
+	        if (gs._writableState.sync == false) process.stdout.write(''+data);
+	      }).stderr.on('data', function(data) {
+	        console.log('STDERR: ' + data);
+	        process.exit(1);
+	    });
+	  });
+	}).connect({
+	  host: params.host,
+	  port: params.port,
+	  privateKey:params.privateKey,
+	  keepaliveInterval:30*1000,
+	  username: params.user,
+	});
+
+	let stdin = process.stdin;
+	stdin.setRawMode( true );
+	stdin.resume();
+	stdin.setEncoding( 'utf8' );
+	stdin.on( 'data', function( key ) {
+	  if ( key === '\u0003' ) {
+	    process.exit();
+	  }
+	  if (gs) gs.write('' + key); 
+	});
+}
 
 
 function _________ssh__________(func) {}
-var check_public_key = function(e) {
+var check_public_key = function(form) { // TODO support other key type.
+	return true;
 	let s = form.public_key;
 	if (s && s.indexOf('ssh-rsa ') == 0) {
 		if (s.length < 1000) {
@@ -166,9 +233,11 @@ var check_public_key = function(e) {
 	}
 	return false;
 }
+
+
 function ssh_key_list(func) { func_get("/console/servers/ssh_keys",(e,res)=>{func(e,res)}, [], {}); }
 function generate_ssh_key(func) { func_get("/console/servers/ssh_key_gen",(e,res)=>{func(e,res)}, [], {}); }
-function register_ssh_key(form,func) { func_post("/console/servers/register_ssh_key",(e,res)=>{func(e,res)}, ["name","public_key"], form); }
+function register_ssh_key(form,func) { if (!check_public_key()) { func(`Invalid key`);return;} func_post("/console/servers/register_ssh_key",(e,res)=>{func(e,res)}, ["name","public_key"], form); }
 function delete_ssh_key(form,func) { func_post("/console/servers/delete_ssh_key",(e,res)=>{func(e,res)}, ["id"], form); }
 var test_ssh_key = function() {
 	const async = require('async');
@@ -208,26 +277,25 @@ var test_ssh_key = function() {
 
 function _________image__________(func) {}
 function image_list(func) { func_get("/console/servers/images",(e,res)=>{func(e,res)}, [], {}); }
-function snapshot_instance(form,func) { throw "Not supported yet"; }
-function delete_snapshot(form,func) { throw "Not supported yet"; }
-function create_image(form,func) { throw "Not supported yet"; }
-function register_image(form,func) { throw "Not supported yet"; }
-function delete_image(form,func) { throw "Not supported yet"; }
+function registered_image_list(func) { func_get("/console/servers/registered_image_list",(e,res)=>{func(e,res)}, [], {}); }
+function snapshot_instance(form,func) { func_post("/console/servers/snapshot_instance",(e,res)=>{func(e,res)}, ["instance_id"], form); }
+function delete_snapshot(form,func) { func_post("/console/servers/delete_snapshot",(e,res)=>{func(e,res)}, ["snapshot_id"], form); }
+function snapshot_list(form,func) { func_get("/console/servers/snapshot_list",(e,res)=>{func(e,res)}, ["instance_id"], form); }
+function restore_from_snapshot(form,func) { func_post("/console/servers/restore_from_snapshot",(e,res)=>{func(e,res)}, ["instance_id","snapshot_id"], form); }
+function create_image(form,func) { func_post("/console/servers/create_image",(e,res)=>{func(e,res)}, ["instance_id","image_name"], form); }
+function register_image(form,func) { func_post("/console/servers/register_image",(e,res)=>{func(e,res)}, ["url","image_name"], form); }
+function delete_image(form,func) { func_post("/console/servers/delete_image",(e,res)=>{func(e,res)}, ["image_id"], form); }
 var test_image = function() {
 	image_list((e,s)=>{dir([e,s])});
 }
 
 
-// j.find_ssh_key = (name)=>{return find_ssh_key(name,j);}
-// j.find_image = (name)=>{return find_image(name,j);}
-// j.find_product = (name)=>{return find_product(name,j);}
-// ins.ssh_command = `ssh root@${ins.ipv4} -p 22 -i ~/.ssh/${ins.ssh_key_file_name}.pem -o ServerAliveInterval=10`;
 function _________instance__________(func) {}
 function ondemand_list(func) { func_get("/console/servers/ondemand_launch_list",(e,res)=>{func(e,ResponseProduct(res))}, [], {}); }
 function launch_ondemand_instance(form,func) { func_post("/console/servers/launch_ondemand_instance",(e,res)=>{func(e,res)}, ["product_id","image","ssh_key_id","tag"], form); }
-function subscription_list(func) { throw "Not supported yet"; }
-function launch_subcription_instance(form,func) { throw "Not supported yet"; }
-function instance_list(func) { func_get("/console/servers/instance_list",(e,res)=>{func(e,res)}, [], {}); }
+function subscription_list(func) { func_get("/console/servers/subscription_launch_list",(e,res)=>{func(e,ResponseProduct(res))}, [], {}); }
+function launch_subcription_instance(form,func) { func_post("/console/servers/launch_subscription_instance",(e,res)=>{func(e,res)}, ["product_id","subscription_id","image","ssh_key_id","tag"], form); }
+function instance_list(func) { func_get("/console/servers/instance_list",(e,res)=>{func(e,InstancesResponse(res))}, [], {}); }
 function change_instance_tag(form,func) { func_post("/console/servers/change_instance_tag",(e,res)=>{func(e,res)}, ["instance_id","tag"], form); }
 function start_instance(form,func) { func_post("/console/servers/start",(e,res)=>{func(e,res)}, ["instance_id","machine_resource_id"], form); }
 function stop_instance(form,func) { func_post("/console/servers/stop",(e,res)=>{func(e,res)}, ["instance_id","machine_resource_id"], form); }
@@ -283,13 +351,18 @@ var test_instance = function() {
 		dir([e,s]);
 	});
 }
+var test_instance2 = function() {
+	instance_list((e,s)=>{
+		dir([e,s]);
+	});
+}
 
 function _________network__________(func) {}
 function port_list(form,func) { func_get("/console/servers/port_list",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
 function open_port(form,func) { func_post("/console/servers/add_port",(e,res)=>{func(e,res)}, ["instance_id","connection_id","port"], form); }
 function close_port(form,func) { func_post("/console/servers/delete_port",(e,res)=>{func(e,res)}, ["instance_id","connection_id","port"], form); }
-function renew_ipv4(form,func) { func_get("/console/servers/renew_ipv4",(e,res)=>{func(e,res)}, ["instance_id"], form); }
-function refresh_ipv4(form,func) { func_get("/console/servers/refresh_ipv4",(e,res)=>{func(e,res)}, ["instance_id"], form); }
+function renew_ipv4(form,func) { func_post("/console/servers/renew_ipv4",(e,res)=>{func(e,res)}, ["instance_id"], form); }
+function refresh_ipv4(form,func) { func_post("/console/servers/refresh_ipv4",(e,res)=>{func(e,res)}, ["instance_id"], form); }
 function network_description(form,func) { func_get("/console/servers/instance_info",(e,res)=>{func(e,res)}, ["instance_id"], form); }
 var test_network = function() {
 	const async = require('async');
@@ -339,44 +412,115 @@ var test_network = function() {
 			});
 		},
 	],function(e,s) {
+		info("Done.");
 	});
 }
-//test_network();
+var test_network2 = function() {
+	const async = require('async');
+	async.waterfall([
+		function(callback) {
+			instance_list((e,s)=>{
+				let ins = s[0];
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			renew_ipv4(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			network_description(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+	],function(e,s) {
+		info("Done.");
+	});
+}
+var test_network3 = function() {
+	const async = require('async');
+	async.waterfall([
+		function(callback) {
+			instance_list((e,s)=>{
+				let ins = s[0];
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			refresh_ipv4(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+		function(ins,callback) {
+			network_description(ins,(e,s)=>{
+				dir(s);
+				callback(e,ins);
+			});
+		},
+	],function(e,s) {
+		info("Done.");
+	});
+}
 
 function _________storage__________(func) {}
-function create_volume(func) { throw "Not supported yet"; }
-function delete_volume(func) { throw "Not supported yet"; }
-function transfer_volume(func) { throw "Not supported yet"; }
+function create_volume(form,func) { func_post("/console/servers/create_volume",(e,res)=>{func(e,res)}, ["region_id","storage_type","volume"], form); }
+function delete_volume(form,func) { func_post("/console/servers/delete_volume",(e,res)=>{func(e,res)}, ["volume_id"], form); }
+function attach_volume(form,func) { func_post("/console/servers/attach_volume",(e,res)=>{func(e,res)}, ["volume_id","instance_id"], form); }
+function detach_volume(form,func) { func_post("/console/servers/detach_volume",(e,res)=>{func(e,res)}, ["volume_id"], form); }
+function transfer_volume(form,func) { func_post("/console/servers/transfer_volume",(e,res)=>{func(e,res)}, ["volume_id","region_id"], form); }
 
 function _________subscription__________(func) {}
-function subscription_instance_list(func) { throw "Not supported yet"; }
+function subscription_instance_list(func) { func_get("/console/servers/plan_list_v1",(e,res)=>{func(e,res)}, [], {}); }
 function subscription_storage_list(func) { throw "Not supported yet"; }
 function subscription_network_list(func) { throw "Not supported yet"; }
-function subscribe_instance(func) { throw "Not supported yet"; }
-function unsubscribe_instance(func) { throw "Not supported yet"; }
+function subscribed_list(func) { throw "Not supported yet"; }
+function subscribed_list(func) { func_get("/console/servers/subscribed_list",(e,res)=>{func(e,res)}, [], {}); }
+function subscribe_instance(form,func) { func_post("/console/servers/subscribe",(e,res)=>{func(e,res)}, ["subscription_id"], form); }
+function unsubscribe_instance(form,func) { func_post("/console/servers/unsubscribe_for_admin",(e,res)=>{func(e,res)}, ["subscription_id"], form); }
 function subscribe_storage(func) { throw "Not supported yet"; }
 function unsubscribe_storage(func) { throw "Not supported yet"; }
 function subscribe_network(func) { throw "Not supported yet"; }
 function unsubscribe_network(func) { throw "Not supported yet"; }
 
 function _________special__________(func) {}
-function live_migration(func) { throw "Not supported yet"; }
-function live_migration_for_admin(func) { throw "Not supported yet"; }
-function cancel_transaction(func) { throw "Not supported yet"; }
+function live_migration(form,func) { func_post("/console/servers/live_migration",(e,res)=>{func(e,res)}, ["instance_id","connection_id","product_id","region_id","ssh_key_id","tag"], form); }
+function live_migration_for_admin(form,func) { func_post("/console/servers/live_migration_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id","product_id","region_id","ssh_key_id","tag","machine_resource_id"], form); }
+function cancel_transaction(form,func) { func_post("/console/servers/cancel_transaction",(e,res)=>{func(e,res)}, ["transaction_id"], form); }
+function peak_transaction(form,func) { func_post("/console/servers/peak_transaction",(e,res)=>{func(e,res)}, ["transaction_id"], form); }
 
 function _________payment__________(func) {}
-function invoice_list(func) { func_get("/console/servers/charge_list",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
-function subscription_invoice_list(func) { throw "Not supported yet"; }
-function make_invoice(func) { throw "Not supported yet"; }
+function invoice_list(func) { func_get("/console/servers/charge_list",(e,res)=>{func(e,res)}, [], {}); }
+function subscription_invoice_list(func) { func_get("/console/servers/invoice_list",(e,res)=>{func(e,res)}, [], {}); }
+function card_list(func) { func_get("/console/servers/card_list",(e,res)=>{func(e,res)}, [], {}); }
+function has_available_card(func) { func_get("/console/servers/has_available_card",(e,res)=>{func(e,res)}, [], {}); }
+function register_card(form,func) { func_post("/console/servers/register_card",(e,res)=>{func(e,res)}, ["card_id","number","exp_month","exp_year","cvc"], form); }
+function delete_card(form,func) { func_post("/console/servers/delete_card",(e,res)=>{func(e,res)}, ["card_id"], form); }
+function make_invoice(form,func) { throw "Not supported yet"; }
+var test_payment = function() {
+	invoice_list((e,s)=>{dir([e,s]);});
+}
 
 
 
 
 function _________administrator__________(func) {}
-function machine_resource_list_for_admin(func) { func_get("/console/servers/machine_resource_list_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
-function instance_list_for_admin(func) { func_get("/console/servers/instance_list_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
-function products_for_admin(func) { func_get("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
-function launch_as_admin(form,func) { func_post("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function image_list_for_admin(func) { func_get("/console/servers/image_list_for_admin",(e,res)=>{func(e,res)}, [], {}); }
+function machine_resource_list_for_admin(func) { func_get("/console/servers/machine_resource_list_for_admin",(e,res)=>{func(e,res)}, [], {}); }
+function instance_list_for_admin(func) { func_get("/console/servers/instance_list_for_admin",(e,res)=>{func(e,res)}, [], {}); }
+function products_for_admin(func) { func_get("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, [], {}); }
+function launch_as_admin(form,func) { func_post("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, ["product_id","ssh_key_id","image","tag"], form); }
+function assign_instance_for_admin(form,func) { func_post("/console/servers/assign_instance_for_admin",(e,res)=>{func(e,res)}, ["instance_id","user_id"], form); }
+function assign_network_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+var test_admin = function() {
+	image_list_for_admin((e,s)=>{dir([e,s])});
+}
+
+
+
 
 function _________extensions__________(func) {}
 function copy_file(form,func) {throw "Not implemented yet";}
@@ -387,7 +531,7 @@ function file_list(func) {throw "Not implemented yet";}
 function synchronize_files(func) {throw "Not implemented yet";}
 function login_instance(func) {throw "Not implemented yet";}
 function tunnel(func) {throw "Not implemented yet";}
-
+//ssh2_console({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
 
 
 if (require.main === module) {
@@ -411,6 +555,7 @@ if (require.main === module) {
 		exports += "}\n";
 		let fstream = ret.join("\n")+"\n"+exports;
 		fs.writeFileSync('./index.js',fstream);
+		info(`Generated to index.js.`);
 	}
 	generate_source();
 }
@@ -424,8 +569,11 @@ module.exports = {
 	delete_ssh_key: delete_ssh_key,
 	_________image__________: _________image__________,
 	image_list: image_list,
+	registered_image_list: registered_image_list,
 	snapshot_instance: snapshot_instance,
 	delete_snapshot: delete_snapshot,
+	snapshot_list: snapshot_list,
+	restore_from_snapshot: restore_from_snapshot,
 	create_image: create_image,
 	register_image: register_image,
 	delete_image: delete_image,
@@ -451,11 +599,15 @@ module.exports = {
 	_________storage__________: _________storage__________,
 	create_volume: create_volume,
 	delete_volume: delete_volume,
+	attach_volume: attach_volume,
+	detach_volume: detach_volume,
 	transfer_volume: transfer_volume,
 	_________subscription__________: _________subscription__________,
 	subscription_instance_list: subscription_instance_list,
 	subscription_storage_list: subscription_storage_list,
 	subscription_network_list: subscription_network_list,
+	subscribed_list: subscribed_list,
+	subscribed_list: subscribed_list,
 	subscribe_instance: subscribe_instance,
 	unsubscribe_instance: unsubscribe_instance,
 	subscribe_storage: subscribe_storage,
@@ -466,15 +618,23 @@ module.exports = {
 	live_migration: live_migration,
 	live_migration_for_admin: live_migration_for_admin,
 	cancel_transaction: cancel_transaction,
+	peak_transaction: peak_transaction,
 	_________payment__________: _________payment__________,
 	invoice_list: invoice_list,
 	subscription_invoice_list: subscription_invoice_list,
+	card_list: card_list,
+	has_available_card: has_available_card,
+	register_card: register_card,
+	delete_card: delete_card,
 	make_invoice: make_invoice,
 	_________administrator__________: _________administrator__________,
+	image_list_for_admin: image_list_for_admin,
 	machine_resource_list_for_admin: machine_resource_list_for_admin,
 	instance_list_for_admin: instance_list_for_admin,
 	products_for_admin: products_for_admin,
 	launch_as_admin: launch_as_admin,
+	assign_instance_for_admin: assign_instance_for_admin,
+	assign_network_for_admin: assign_network_for_admin,
 	_________extensions__________: _________extensions__________,
 	copy_file: copy_file,
 	delete_file: delete_file,
