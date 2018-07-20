@@ -1,7 +1,7 @@
 # GPUEater API Console
 
 ## Getting Started
-GPUEater is a cloud computing service focusing on Machine Learning and Deep Learning. Now, AMD Radeon GPUs and NVIDIA Quadro GPUs are available. 
+GPUEater is a cloud computing service focusing on Machine Learning and Deep Learning. Now, AMD Radeon GPUs and NVIDIA Quadro GPUs are available.
 
 This document is intended to describe how to set up this API and how to control your instances through this API.
 
@@ -50,9 +50,9 @@ Before launching an instance, you need to decide product, ssh key, OS image. Get
 
 This API returns current available on-demand products.
 ```
-const gpueater = require('gpueater');
+const g = require('gpueater');
 
-gpueater.ondemand_list((e,res)=>{
+g.ondemand_list((e,res)=>{
     if (e) console.error(e);
     else {
         console.dir(res);
@@ -63,9 +63,9 @@ gpueater.ondemand_list((e,res)=>{
 
 This API returns your registered ssh keys.
 ```
-const gpueater = require('gpueater');
+const g = require('gpueater');
 
-gpueater.ssh_keys((e,res)=>{
+g.ssh_key_list((e,res)=>{
     if (e) console.error(e);
     else {
         console.dir(res);
@@ -77,9 +77,9 @@ gpueater.ssh_keys((e,res)=>{
 
 This API returns available OS images.
 ```
-const gpueater = require('gpueater');
+const g = require('gpueater');
 
-gpueater.image_list((e,res)=>{
+g.image_list((e,res)=>{
     if (e) console.error(e);
     else {
         console.dir(res);
@@ -89,12 +89,12 @@ gpueater.image_list((e,res)=>{
 
 #### Instance launch
 
-Specify product, OS image, and ssh_key for instance launching. 
+Specify product, OS image, and ssh_key for instance launching.
 
 ```
-const gpueater = require('gpueater');
+const g = require('gpueater');
 
-gpueater.ondemand_list((e,res)=>{
+g.ondemand_list((e,res)=>{
     if (e) console.error(e);
     else {
         let image = res.find_image('Ubuntu16.04 x64');
@@ -111,7 +111,7 @@ gpueater.ondemand_list((e,res)=>{
             ssh_key_id:ssh_key.id,
             tag:`HappyGPUProgramming`,
         };
-        gpueater.launch_ondemand_instance(form,(e,res)=>{
+        g.launch_ondemand_instance(form,(e,res)=>{
             if (e) console.error(e);
             else {
                 console.dir(res);
@@ -121,7 +121,7 @@ gpueater.ondemand_list((e,res)=>{
 });
 ```
 In the event, the request has succeeded, then the API returns the following empty data.
-{data:null, error:null} 
+{data:null, error:null}
 
 In the event, errors occurred during the instance instantiation process, then the API returns details about the error.
 
@@ -129,9 +129,9 @@ In the event, errors occurred during the instance instantiation process, then th
 
 This API returns your launched instance info.
 ```
-const gpueater = require('gpueater');
+const g = require('gpueater');
 
-gpueater.instance_list((e,res)=>{
+g.instance_list((e,res)=>{
     if (e) console.error(e);
     else {
         console.dir(res);
@@ -143,15 +143,15 @@ gpueater.instance_list((e,res)=>{
 Before terminating an instance, get instance info through Launched instance list API. Also, you can directly specify instance_id and machine_resource_id instead of specifing your tag name.
 
 ```
-const gpueater = require('gpueater');
+const g = require('gpueater');
 
-gpueater.instance_list((e,res)=>{
+g.instance_list((e,res)=>{
     if (e) console.error(e);
     else {
         for (let ins of res.data) {
             if (ins.tag == 'HappyGPUProgramming') {
                 console.dir(ins);
-                gpueater.terminate_instance(ins,(e,res)=>{
+                g.terminate_instance(ins,(e,res)=>{
                     if (e) console.error(e);
                     else {
                         console.dir(res);
@@ -162,6 +162,164 @@ gpueater.instance_list((e,res)=>{
     }
 });
 ```
+
+-----
+
+#### API list
+
+```
+const g = require('gpueater');
+
+// func is function(error, response) style.
+
+g.image_list((error,res)=>{
+  if (error) console.error(error);
+  else {
+    console.dir(res);
+  }
+});
+```
+
+##### Image
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v0.8  |  image_list(func)  |  | Listing all OS images |
+|  v1.5  |  snapshot_instance(form, func)  | instance_id, machine_resource_id |  Creating a snapshot |
+|  v1.5  |  delete_snapshot(form, func)  | instance_id, machine_resource_id |  Deleting a snapshot |
+|  v1.5  |  create_image(form, func)  | instance_id, machine_resource_id |  Adding an OS image of snapshot |
+|  v2.0  |  register_image(form, func)  | url |  Registering an OS image of snapshot on the internet |
+|  v1.5  |  delete_image(form, func)  | image |  Deleting an OS image |
+
+
+##### SSH Key
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v0.8  |  ssh_key_list(func)  |  |  Listing all ssh keys |
+|  v1.0  |  generate_ssh_key(func)  |  |  Generating Key Pair |
+|  v1.0  |  register_ssh_key(form, func)  | name, public_key |  Registering an SSH key |
+|  v1.0  |  delete_ssh_key(form, func)  | id |  Deleting an SSH key |
+
+```
+const g = require('gpueater');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const HOME = os.homedir();
+
+g.generate_ssh_key((error,res)=>{
+  if (error) console.error(error);
+  else {
+    let fpath = path.join(HOME,'.ssh','nodejs_ssh_key.pem');
+    fs.writeFileSync(fpath,res.private_key);
+    g.register_ssh_key({name:"nodejs_ssh_key", public_key:res.public_key},(error, res)=>{
+      if (error) console.error(error);
+      else {
+        console.dir(res);
+      }
+    });
+  }
+});
+
+
+```
+
+##### Instance
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v0.8  |  ondemand_list(func)  |  |  Listing all on-demand instances |
+|  v2.0  |  subscription_list(func)  |  |  Listing all subscription instances |
+|  v0.8  |  launch_ondemand_instance(form, func)  | product_id, image, ssh_key_id |  Launch an on-demand instance |
+|  v2.0  |  launch_subcription_instance(form, func)  | subscription_id, image, ssh_key_id |  Launch a subscription instance |
+|  v0.8  |  instance_list(func)  |  |  Listing all launched instances |
+|  v1.0  |  change_instance_tag(form, func)  | instance_id, tag |  Changing an instance tag |
+|  v1.0  |  start_instance(form, func)  | instance_id, machine_resource_id |  Starting an instance. If the instance is already RUNNING, nothing is going to happen |
+|  v1.0  |  stop_instance(form, func)  | instance_id, machine_resource_id |  Stopping an instance. If the instance is already STOPPED, nothing is going to happen |
+|  v1.0  |  restart_instance(form, func)  | instance_id, machine_resource_id |  Restarting an instance |
+|  v0.8  |  terminate_instance(form, func)  | instance_id, machine_resource_id |  Terminating an instance |
+|  v1.0  |  emergency_restart_instance(form, func)  | instance_id, machine_resource_id |  Restarting an instance emergently when an instance is hung up |
+
+The "machine_resource_id" is including an instance object.  See the following sample code.
+
+Example:
+```
+const g = require('gpueater');
+
+g.instance_list((error,res)=>{
+  if (error) console.error(error);
+  else {
+	let instance = res[0]; // instance object has instance_id, and machine_resource_id.
+    g.terminate_instance(instance, (error, res)=>{
+      if (error) console.error(error);
+      else {
+        console.dir(res);
+      }
+    });
+  }
+});
+
+```
+
+##### Network
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v1.0  |  port_list(form, func)  | instance_id |  Listing all ports |
+|  v1.0  |  open_port(form, func)  | instance_id, connection_id, port |  Opening a port for inbound traffic |
+|  v1.0  |  close_port(form, func)  | instance_id, connection_id, port |  Closing a port for inbound traffic |
+|  v1.0  |  renew_ipv4(form, func)  | instance_id |  Getting a new IPv4 address |
+|  v1.0  |  network_description(form, func)  | instance_id |  This API reports current network status information |
+
+##### Storage
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v2.0  |  create_volume(form, func)  | size |  Creating an extended volume |
+|  v2.0  |  attach_volume(form, func)  | volume_id, instance_id |  Attaching an extended volume to an instance |
+|  v2.0  |  delete_volume(form, func)  | volume_id |  Deleting an extended volume |
+|  v2.0  |  transfer_volume(form, func)  | volume_id,region_id |  Transfering an extended volume to another region |
+
+##### Subscription
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v2.0  |  subscription_instance_list(func, func)  |  |  Listing all items of subscription instance |
+|  v2.0  |  subscription_storage_list(func)  |  |  Listing all items of storages volume for subscription instance |
+|  v2.0  |  subscription_network_list(func)  |  |  Listing all items of subscription networks |
+|  v2.0  |  subscribe_instance(form, func)  | subscription_id |  Subscribing a subscription instance |
+|  v2.0  |  unsubscribe_instance(form, func)  | subscription_id |  Canceling a subscription instance |
+|  v2.0  |  subscribe_storage(form, func)  | subscription_id |  Subscribing a storage volume for subscription instance |
+|  v2.0  |  unsubscribe_storage(form, func)  | subscription_id |  Canceling a storage volume for subscription instance |
+|  v2.0  |  subscribe_network(form, func)  | subscription_id |  Subscribing a network product |
+|  v2.0  |  unsubscribe_network(form, func)  | subscription_id |  Canceling a network product |
+
+##### Special
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v2.5  |  live_migration(form, func)  | product_id, region_id, connection_id |  Moving a running instance between different physical machines without termination |
+|  v2.5  |  cancel_transaction(form, func)  | transaction_id |  Canceling a transaction |
+|  v2.5  |  peak_transaction(form, func)  | transaction_id |  This API reports current status information of a transaction |
+
+##### Payment
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v1.0  |  invoice_list(func)  |  |  Listing invoices for on-demand instances |
+|  v2.0  |  subscription_invoice_list(func)  |  |  Listing invoices for subscription instances |
+|  v1.5  |  make_invoice(form, func)  | invoice_id |  Obtain a pdf invoice |
+
+##### Extensions
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v1.2  |  copy_file(form, func)  | action("get"or"put"), src, dst |  Copying a file. "get" obtains a file from a remote host to your local host, and "put" is the opposite. "src" is a source file path, and "dst" is a destination file path |
+|  v1.2  |  delete_file(form, func)  | src, recursive |  Deleting a remote file |
+|  v1.2  |  move_file(form, func)  | action("get"or"put"), src, dst |  Moving a file. "get" obtains a file from a remote host to your local host, and "put" is the opposite. "src" is a source file path, and "dst" is a destination file path |
+|  v1.2  |  make_directory(form, func)  | dst |  Making a directory in a remote host |
+|  v1.2  |  file_list(form, func)  | src |  Listing all files in a remote host |
+|  v1.2  |  synchronize_files(form, func)  | action, src, dst |  This API is similar to the "rsync" |
+|  v1.2  |  login_instance(form, func)  | instance_id | Logging in a specific instance through the SSH |
+|  v1.2  |  tunnel(form, func)  | instance_id, port |  This API enables a port tunneling between your local and a remote host |
+
+##### Class API
+|  Version  |  Function  | Required | Description  |
+| ---- | ---- | ---- | ---- |
+|  v1.2  |  api_list()  |  |  Listing all available APIs. |
+
 
 ## License
 

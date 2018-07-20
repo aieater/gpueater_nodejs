@@ -54,8 +54,8 @@ try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (
 		let obj = {gpueater:{email:email,password:pass}};
 		fs.writeFileSync(path.join(HOME,".eater"),JSON.stringify(obj));
 		console.info(`GPUEater config saved to ${path.join(HOME,".eater")}.`);
-	} 	
-} 
+	}
+}
 
 let stored_hash = "A";
 let hash = "B";
@@ -152,7 +152,7 @@ let ResponseProduct = function(res) {
 			if (p.name == name) { ret = p; break;}
 		}
 		return ret;
-	
+
 	}
 
 	res.find_product = function(name) {
@@ -215,7 +215,7 @@ var ssh2_console = function(params) {
 	  if ( key === '\u0003' ) {
 	    process.exit();
 	  }
-	  if (gs) gs.write('' + key); 
+	  if (gs) gs.write('' + key);
 	});
 }
 
@@ -550,7 +550,7 @@ if (require.main === module) {
 		}
 		let exports = "module.exports = {\n";
 		for (let f of funcs) {
-			exports += `	${f}: ${f},\n`; 
+			exports += `	${f}: ${f},\n`;
 		}
 		exports += "}\n";
 		let fstream = ret.join("\n")+"\n"+exports;
