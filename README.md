@@ -186,8 +186,8 @@ g.image_list((error,res)=>{
 |  v0.8  |  image_list(func)  |  | Listing all OS images |
 |  v1.5  |  snapshot_instance(form, func)  | instance_id, machine_resource_id |  Creating a snapshot |
 |  v1.5  |  delete_snapshot(form, func)  | instance_id, machine_resource_id |  Deleting a snapshot |
-|  v1.5  |  create_image(form, func)  | instance_id, machine_resource_id |  Adding an OS image of snapshot |
-|  v2.0  |  register_image(form, func)  | url |  Registering an OS image of snapshot on the internet |
+|  v1.5  |  create_image(form, func)  | instance_id, machine_resource_id |  Adding an user defined OS image |
+|  v2.0  |  register_image(form, func)  | url |  Registering an user defined OS image on the internet |
 |  v1.5  |  delete_image(form, func)  | image |  Deleting an OS image |
 
 
@@ -308,7 +308,6 @@ g.instance_list((error,res)=>{
 | ---- | ---- | ---- | ---- |
 |  v1.2  |  copy_file(form, func)  | action("get"or"put"), src, dst |  Copying a file. "get" obtains a file from a remote host to your local host, and "put" is the opposite. "src" is a source file path, and "dst" is a destination file path |
 |  v1.2  |  delete_file(form, func)  | src, recursive |  Deleting a remote file |
-|  v1.2  |  move_file(form, func)  | action("get"or"put"), src, dst |  Moving a file. "get" obtains a file from a remote host to your local host, and "put" is the opposite. "src" is a source file path, and "dst" is a destination file path |
 |  v1.2  |  make_directory(form, func)  | dst |  Making a directory in a remote host |
 |  v1.2  |  file_list(form, func)  | src |  Listing all files in a remote host |
 |  v1.2  |  synchronize_files(form, func)  | action, src, dst |  This API is similar to the "rsync" |

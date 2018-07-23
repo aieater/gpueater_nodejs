@@ -11,8 +11,13 @@ if (require.main === module) { gutil.enable_console(); gutil.disable_backup(); }
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const req = require('request');
 const crypto = require("crypto");
+
+const execSync = require('child_process').execSync;
+
+const req = require('request'); // npm install request
+const ssh2 = require('ssh2'); // npm install ssh2
+
 
 const HOME = os.homedir();
 const TMP = os.tmpdir();
@@ -180,7 +185,6 @@ let InstancesResponse = function(res) {
 
 
 var ssh2_console = function(params) {
-	const ssh2 = require('ssh2');
 	let gs = null;
 	const conn = new ssh2();
 	conn.on('ready', function() {
@@ -515,23 +519,127 @@ function products_for_admin(func) { func_get("/console/servers/product_list_for_
 function launch_as_admin(form,func) { func_post("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, ["product_id","ssh_key_id","image","tag"], form); }
 function assign_instance_for_admin(form,func) { func_post("/console/servers/assign_instance_for_admin",(e,res)=>{func(e,res)}, ["instance_id","user_id"], form); }
 function assign_network_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function create_distribution_image_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function distribute_image_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function login_nodes_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
 var test_admin = function() {
-	image_list_for_admin((e,s)=>{dir([e,s])});
+	//image_list_for_admin((e,s)=>{dir([e,s])});
+	try { execSync(`cp ~/.ssh/config ~/.ssh/_bk_`); } catch (e) {}
+	machine_resource_list_for_admin((e,s)=>{
+		let st = "#@@GEN@@#\n";
+		let index = 0;
+		let cmd = "csshX ";
+		for (let k in s) {
+			let m = s[k];
+			if (m.node_type == 1) {
+				cmd += ` _cc_${index}`;
+				st += `Host _cc_${index}\n`;
+				st += `HostName ${m.network_ipv6||m.network_ipv4}\n`;
+				st += `User ${m.sshd_user}\n`;
+				st += `Port ${m.sshd_port}\n`;
+				st += `IdentityFile ~/.ssh/brain_master_key.pem\n`;
+				st += `ServerAliveInterval 15\n`;
+				st += `\n`;
+				index++;
+			}
+		}
+		let cnf = fs.readFileSync(HOME+"/.ssh/config").toString();
+		cnf = cnf.split("#@@GEN@@#")[0];
+		cnf += st;
+		fs.writeFileSync(HOME+"/.ssh/config",cnf);
+		console.dir(cmd);
+		execSync(cmd);
+	});
 }
 
 
 
-
 function _________extensions__________(func) {}
-function copy_file(form,func) {throw "Not implemented yet";}
-function delete_file(form,func) {throw "Not implemented yet";}
-function move_file(func) {throw "Not implemented yet";}
-function make_directory(func) {throw "Not implemented yet";}
-function file_list(func) {throw "Not implemented yet";}
+var check_params = function(form,required_fields,func) { for (let k in required_fields) { if (!(required_fields[k] in form)) { func(`Required field => ${required_fields[k]}`); return false; } }  return true;}
+var check_con_params = function(form,func) {
+	if (!(form.host||form.ipv4||form.ipv6)) {func(`Required parameter => host or ipv4 or ipv6`);return false;}
+	if (!(form.user||form.sshd_user)) {func(`Required parameter => user or sshd_user`);return false;}
+	if (!(form.port||form.sshd_port)) {func(`Required parameter => port or sshd_port`);return false;}
+	if (!(form.private_key||form.private_key_file||form.ssh_key_file_name)) {func(`Required parameter => private_key or private_key_file or ssh_key_file_name`);return false;}
+	return true;
+}
+function copy_file(form,func) {
+	if (!check_con_params(form,func)) return;
+	if (!(form.src)) {func(`Required parameter => src`);return;}
+	if (!(form.dst)) {func(`Required parameter => dst`);return;}
+	try {
+		let host = form.host||form.ipv4||form.ipv6; let user = form.user||form.sshd_user; let port = form.port||form.sshd_port;
+		let private_key_file = form.private_key_file || (form.ssh_key_file_name?path.join(HOME,".ssh",`${form.ssh_key_file_name}.pem`):null);
+		let action = form.action;
+		let src = form.src||form.source;
+		let dst = form.dst||form.destination;
+		// dir(private_key_file)
+		if (action == "put") {
+			execSync(`scp -i "${private_key_file}" -r ${src} ${user}@${host}:${dst}`);
+			func(null);
+		} else if (action == "get") {
+			execSync(`scp -i "${private_key_file}" -r ${user}@${host}:${src} ${dst}`);
+			func(null);
+		} else {
+			func(`Invalid action => ${action}`);
+		}
+	} catch (e) {
+		func(e);
+	}
+}
+function delete_file(form,func) {
+	if (!check_con_params(form,func)) return;
+	if (!(form.src)) {func(`Required parameter => src`);return;}
+	try {
+		let host = form.host||form.ipv4||form.ipv6; let user = form.user||form.sshd_user; let port = form.port||form.sshd_port;
+		let private_key_file = form.private_key_file || (form.ssh_key_file_name?path.join(HOME,".ssh",`${form.ssh_key_file_name}.pem`):null);
+		let src = form.src||form.source;
+		execSync(`ssh ${user}@${host} -p ${port} -i "${private_key_file}" "rm -f \"${src}\""`);
+	} catch (e) {
+		func(e);
+	}
+}
+function make_directory(func) {
+	if (!check_con_params(form,func)) return;
+	if (!(form.src)) {func(`Required parameter => src`);return;}
+	try {
+		let host = form.host||form.ipv4||form.ipv6; let user = form.user||form.sshd_user; let port = form.port||form.sshd_port;
+		let private_key_file = form.private_key_file || (form.ssh_key_file_name?path.join(HOME,".ssh",`${form.ssh_key_file_name}.pem`):null);
+		let src = form.src||form.source;
+		execSync(`ssh ${user}@${host} -p ${port} -i "${private_key_file}" "mkdir -p \"${src}\""`);
+	} catch (e) {
+		func(e);
+	}
+}
+function file_list(func) {
+	if (!check_con_params(form,func)) return;
+	if (!(form.src)) {func(`Required parameter => src`);return;}
+	try {
+		let host = form.host||form.ipv4||form.ipv6; let user = form.user||form.sshd_user; let port = form.port||form.sshd_port;
+		let private_key_file = form.private_key_file || (form.ssh_key_file_name?path.join(HOME,".ssh",`${form.ssh_key_file_name}.pem`):null);
+		let src = form.src||form.source;
+		execSync(`ssh ${user}@${host} -p ${port} -i "${private_key_file}" "ls \"${src}\""`);
+	} catch (e) {
+		func(e);
+	}
+}
 function synchronize_files(func) {throw "Not implemented yet";}
-function login_instance(func) {throw "Not implemented yet";}
+function login_instance(form,func) {
+	if (!check_con_params(form,func)) return;
+	let host = form.host||form.ipv4||form.ipv6; let user = form.user||form.sshd_user; let port = form.port||form.sshd_port;
+	let private_key_file = form.private_key_file || (form.ssh_key_file_name?path.join(HOME,".ssh",`${form.ssh_key_file_name}.pem`):null);
+	ssh2_console({privateKey:fs.readFileSync(private_key_file),port:port,user:user,host:host});
+}
 function tunnel(func) {throw "Not implemented yet";}
-//ssh2_console({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
+var test_extention = function() {
+	instance_list((e,s)=>{
+		let ins = s[0];
+		ins.src = "~/logo.png";
+		delete_file(ins,(e,s)=>{dir([e,s])});
+		
+		login_instance(ins,(e,s)=>{dir([e,s])});
+	});
+}
 
 
 if (require.main === module) {
@@ -635,10 +743,12 @@ module.exports = {
 	launch_as_admin: launch_as_admin,
 	assign_instance_for_admin: assign_instance_for_admin,
 	assign_network_for_admin: assign_network_for_admin,
+	create_distribution_image_for_admin: create_distribution_image_for_admin,
+	distribute_image_for_admin: distribute_image_for_admin,
+	login_nodes_for_admin: login_nodes_for_admin,
 	_________extensions__________: _________extensions__________,
 	copy_file: copy_file,
 	delete_file: delete_file,
-	move_file: move_file,
 	make_directory: make_directory,
 	file_list: file_list,
 	synchronize_files: synchronize_files,
