@@ -36,21 +36,43 @@ argv.shift() // app
 const f = argv.shift()
 
 function display_help() {
-	print(` --- GPUEater console API help --- `);
-	print(` [Command] [Action] [Args...]`);
+	print('')
+	print(`[Command] [Action] [Args...]`);
+	print(`  `)
+	print(`  Example`)
+	print(`   > gpueater products`)
+	print(`  `)
+	let actions = action_list();
 	print(``);
-	print(` Command`);
-	print(`   - instances`);
-	print(`   - products`);
-	print(`   - images`);
-	print(`   - ssh_keys`);
-	print(`   - start`);
-	print(`   - stop`);
-	print(`   - restart`);
-	print(`   - launch`);
-	print(`   - terminate`);
+	for (let v of actions) {
+		if (GPUEATER_ADMINISTRATOR || v.administrator == false) {
+			if (v.name.indexOf("____")==0) {
+				print(` ${PR(v.index != null?v.index:"",2)}   ${PR(v.name,30)}`);
+			} else {
+				print(` ${PR(v.index != null?v.index:"",2)} : ${PR(v.name,30)} : ${PL(v.description,80).trim()}`);
+			}
+		}
+	}
+	print(``);
 }
 
+Date.prototype.full_time = function() {
+  let mm = this.getMonth() + 1; // getMonth() is zero-based
+  let dd = this.getDate();
+  let hr = this.getHours();
+  let mn = this.getMinutes();
+  return [
+          (mm>9 ? '' : '0') + mm,
+	  "/",
+          (dd>9 ? '' : '0') + dd,
+	  "/",
+		  this.getFullYear(),
+	  " ",
+          (hr>9 ? '' : '0') + hr,
+	  ":",
+          (mn>9 ? '' : '0') + mn,
+         ].join('');
+};
 
 
 function charcount(str) {
@@ -239,6 +261,7 @@ function select_instance(func) {
 	instance_list((e,res)=>{
 		if (e) printe(e);
 		else {
+			if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
 			let arg = argv.shift();
 			let n = null;
 			let ins = null;
@@ -263,6 +286,8 @@ function select_instance_auto(func) {
 	instance_list((e,res)=>{
 		if (e) printe(e);
 		else {
+			if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
+			
 			let arg = argv.shift();
 			let n = null;
 			let ins = null;
@@ -382,7 +407,7 @@ function tunnel(params){
 
 function action_list() {
 	let funcs = [];
-	if (require.main === module && true) {
+	if (require.main === module && false) {
 		let lines = fs.readFileSync(__filename).toString().split("\n");
 		for (let line of lines) {
 			if (line.indexOf("f == ")>=0) {
@@ -426,7 +451,22 @@ function action_list() {
 				}
 				if (add && g_add) s += line+"\n";
 			}
-			fs.writeFileSync(__filename+".js",s);
+			lines = s.split("\n");
+			let ns = [];
+			
+			for (let line of lines) {
+				if (line.indexOf("/*@@VERSION_START@@*/") >= 0) {
+					if (line.indexOf("/*@@VERSION_END@@*/") >= 0) {
+						let nline = "			/*@@VERSION_START@@*/";
+						nline += `print("${new Date().full_time()}")`;
+						nline += "/*@@VERSION_END@@*/";
+						ns.push(nline);
+						continue;
+					}
+				}
+				ns.push(line);
+			}
+			fs.writeFileSync(__filename,ns.join("\n"));
 		}
 	} else {
 		/* @@ACTIONS@@ @@START@@ */
@@ -468,6 +508,7 @@ function action_list() {
 			{name:'__________administrator__________',description:'',administrator:true,hide:undefined},
 			{name:'compute_nodes',description:'Listing only computing nodes.',administrator:true,hide:undefined},
 			{name:'proxy_nodes',description:'Listing only proxy nodes.',administrator:true,hide:undefined},
+			{name:'front_nodes',description:'Listing only front nodes.',administrator:true,hide:undefined},
 			{name:'nodes',description:'Listing all nodes.',administrator:true,hide:undefined},
 			{name:'instances_for_admin',description:'Listing all instances.',administrator:true,hide:undefined},
 			{name:'products_for_admin',description:'Listing all on-demand products.',administrator:true,hide:undefined},
@@ -478,12 +519,14 @@ function action_list() {
 			{name:'login',description:'Login to instance.',administrator:false,hide:undefined},
 			{name:'get',description:'Get a file from host.',administrator:false,hide:undefined},
 			{name:'put',description:'Put a file to host.',administrator:false,hide:undefined},
+			{name:'cmd',description:'Do any command on instance.',administrator:false,hide:undefined},
 			{name:'ls',description:'File list on remote.',administrator:false,hide:undefined},
 			{name:'sync',description:'Synchronize files via rsync.',administrator:false,hide:undefined},
 			{name:'tunnel',description:'Port forwarding local to remote.',administrator:false,hide:undefined},
 			{name:'jupyter',description:'Start jupyter and port forward.',administrator:false,hide:undefined},
+			{name:'version',description:'Version of client.',administrator:false,hide:undefined},
+			{name:'help',description:'Display help.',administrator:false,hide:undefined},
 		];
-
 		/* @@ACTIONS@@ @@END@@ */
 	}
 	let index = 0;
@@ -748,6 +791,8 @@ function main(f) {
 			instance_list((e,res)=>{
 				if (e) printe(e);
 				else {
+					if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
+					
 					let n = ask(`Terminate > `);
 					let ins = res[n];
 					if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
@@ -985,6 +1030,8 @@ function main(f) {
 			instance_list((e,res)=>{
 				if (e) printe(e);
 				else {
+					if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
+					
 					let n = ask(`Login > `);
 					let ins = res[n];
 					if (!ins) for (let v of res) { if (v.tag == n) { ins = v;break;}}
@@ -1030,10 +1077,19 @@ function main(f) {
 				execSync(cmd);
 			});
 		} else if (f == '__________extensions__________') {
+		} else if (f == 'invoices') { // {"description":"Listing invoices."}
+			g.invoice_list((e,res)=>{
+				if (e) printe(e);
+				else {
+					print(res); // TODO
+				} 
+			});
+		} else if (f == '__________extensions__________') {
 		} else if (f == 'login') { // {"description":"Login to instance."}
 			instance_list((e,res)=>{
 				if (e) printe(e);
 				else {
+					if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
 					let n = 0;
 					if (res.length != 1) { n = ask(`Login > `); }
 					
@@ -1054,6 +1110,7 @@ function main(f) {
 				instance_list((e,res)=>{
 					if (e) printe(e);
 					else {
+						if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
 						print(``);
 						let n = 0;
 						if (res.length != 1) {
@@ -1085,6 +1142,7 @@ function main(f) {
 				instance_list((e,res)=>{
 					if (e) printe(e);
 					else {
+						if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
 						print(``);
 						let n = 0;
 						if (res.length != 1) {
@@ -1123,6 +1181,7 @@ function main(f) {
 				instance_list((e,res)=>{
 					if (e) printe(e);
 					else {
+						if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
 						print(``);
 						let n = 0;
 						if (res.length != 1) {
@@ -1187,30 +1246,20 @@ function main(f) {
 				ssh2_console(param);
 			});
 		} else if (f == 'version') { // {"description":"Version of client."}
-			print("1.1.0");
+			/*@@VERSION_START@@*/print("07/25/2018 21:08")/*@@VERSION_END@@*/
+		} else if (f == 'help') { // {"description":"Display help."}
+			display_help();
 		} else {
-		
+			print(``);
+			print(`Invalid action => ${f}`);
+			print(``);
+			setTimeout(()=>{
+				display_help();
+			},1000);
 		}
 	} else {
-		print('')
-		print(`[Command] [Action] [Args...]`);
-		print(`  `)
-		print(`  Example`)
-		print(`   > gpueater products`)
-		print(`  `)
+		display_help();
 		let actions = action_list();
-		print(``);
-		for (let v of actions) {
-			if (GPUEATER_ADMINISTRATOR || v.administrator == false) {
-				if (v.name.indexOf("____")==0) {
-					print(` ${PR(v.index != null?v.index:"",2)}   ${PR(v.name,30)}`);
-				} else {
-					print(` ${PR(v.index != null?v.index:"",2)} : ${PR(v.name,30)} : ${PL(v.description,80).trim()}`);
-				}
-			}
-		}
-		print(``);
-		
 		let n = ask(` Action > `);
 		let action = null;
 		if (isNaN(parseInt(n))) {
@@ -1222,11 +1271,17 @@ function main(f) {
 		if (!action) { printe(`Invalid action.`);process.exit(9); }
 		print(``);
 		main(action.name);
-		
-		// instance_list((e,res)=>{
-		// });
 	}
 }
 
 
 main(f);
+
+
+
+
+
+
+
+
+
