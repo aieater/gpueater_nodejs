@@ -121,7 +121,7 @@ g.ondemand_list((e,res)=>{
 });
 ```
 In the event, the request has succeeded, then the API returns the following empty data.
-{data:null, error:null}
+{}
 
 In the event, errors occurred during the instance instantiation process, then the API returns details about the error.
 
@@ -148,7 +148,7 @@ const g = require('gpueater');
 g.instance_list((e,res)=>{
     if (e) console.error(e);
     else {
-        for (let ins of res.data) {
+        for (let ins of res) {
             if (ins.tag == 'HappyGPUProgramming') {
                 console.dir(ins);
                 g.terminate_instance(ins,(e,res)=>{

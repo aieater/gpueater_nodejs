@@ -12,11 +12,13 @@ const fs = require('fs');
 const os = require('os');
 const execSync = require('child_process').execSync;
 const exec = require('child_process').exec;
+const net = require('net');
 
 const path = require('path');
 const HOME = os.homedir();
 const TMP = os.tmpdir();
 const readlineSync = require('readline-sync');
+const GPUEATER_ADMINISTRATOR = process.env.GPUEATER_ADMINISTRATOR;
 
 const g = require('./gpueater');
 
@@ -27,7 +29,6 @@ var argv = process.argv;
 
 const print = console.log;
 const printe = console.error;
-var administrator_api = process.env.GPUEATER_ADMINISTRATOR;
 
 argv.shift() // node
 argv.shift() // app
@@ -170,7 +171,12 @@ function plot_instances(datas, display = true) {
 	for (let k in datas) {
 		let v = datas[k];
 		ret.push(v);
-		v.view =  ` ${index++}: "${PL(v.tag,10)}" : ${PR(v.state,10)} : ${PR(v.product_name,10)} : CPU${PR(v.cpu,2)} : MEM${PR(v.memory,5)}MB : SSD${PR(v.root_storage,4)}GB : "${PL(v.device_desc,40).trim()}"\n    ${v.ssh_command}`;
+		v.view =  ` ${index++}: "${PL(v.tag,10)}" : ${PR(v.state,10)} : ${PR(v.product_name,10)} : CPU${PR(v.cpu,2)} : MEM${PR(v.memory,5)}MB : SSD${PR(v.root_storage,4)}GB : "${PL(v.device_desc,40).trim()}"\n    ${v.ssh_command}\n`;
+		
+		if (GPUEATER_ADMINISTRATOR) {
+			// console.dir(v);
+			v.view += `    ssh ${v.h_user}@${v.h_network_ipv6||v.h_network_ipv4} -p ${v.h_port} -i ~/.ssh/${v.h_key} -o ServerAliveInterval=10\n`;
+		}
 		if (display) print(v.view);
 	}
 	return ret;
@@ -186,9 +192,9 @@ function display_ondemand_list(func) {
 	g.ondemand_list((e,res)=>{
 		if (e) { printe(e) }
 		else {
-			let image_list 		= plot_images(res.data.images);
-			let ssh_key_list 	= plot_ssh_keys(res.data.ssh_keys);
-			let product_list 	= plot_products(res.data.products);
+			let image_list 		= plot_images(res.images);
+			let ssh_key_list 	= plot_ssh_keys(res.ssh_keys);
+			let product_list 	= plot_products(res.products);
 			print(`-----------------------------------------------------`);
 			if (func) func(null,{image_list:image_list,ssh_key_list:ssh_key_list,product_list:product_list});
 		}
@@ -208,9 +214,9 @@ function ondemand_list(func) {
 	g.ondemand_list((e,res)=>{
 		if (e) { printe(e) }
 		else {
-			let image_list 		= plot_images(res.data.images,false);
-			let ssh_key_list 	= plot_ssh_keys(res.data.ssh_keys,false);
-			let product_list 	= plot_products(res.data.products,false);
+			let image_list 		= plot_images(res.images,false);
+			let ssh_key_list 	= plot_ssh_keys(res.ssh_keys,false);
+			let product_list 	= plot_products(res.products,false);
 			if (func) func(null,{image_list:image_list,ssh_key_list:ssh_key_list,product_list:product_list});
 		}
 	});
@@ -219,9 +225,9 @@ function products_for_admin(func) {
 	g.products_for_admin((e,res)=>{
 		if (e) { printe(e) }
 		else {
-			let image_list 		= plot_images(res.data.images,false);
-			let ssh_key_list 	= plot_ssh_keys(res.data.ssh_keys,false);
-			let product_list 	= plot_products(res.data.products,false);
+			let image_list 		= plot_images(res.images,false);
+			let ssh_key_list 	= plot_ssh_keys(res.ssh_keys,false);
+			let product_list 	= plot_products(res.products,false);
 			if (func) func(null,{image_list:image_list,ssh_key_list:ssh_key_list,product_list:product_list});
 		}
 	});
@@ -253,12 +259,39 @@ function select_instance(func) {
 	});
 }
 
+function select_instance_auto(func) {
+	instance_list((e,res)=>{
+		if (e) printe(e);
+		else {
+			let arg = argv.shift();
+			let n = null;
+			let ins = null;
+			if (arg) {
+				for (let k in res) {
+					if (res[k].tag == arg) { ins = res[k];break;}
+				}
+			} else {
+				if (argv.length == 0 && res.length == 1) {
+					ins = res[0];
+				} else {
+					n = ask(`Select instance > `);
+					ins = res[n];
+				}
+			}
+			if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+			print('');
+			selected(ins);
+			print('');
+			func(null,ins);
+		}
+	});
+}
+
 function ssh2_console(params) {
 	const ssh2 = require('ssh2');
 	let gs = null;
 	const conn = new ssh2();
 	conn.on('ready', function() {
-	  console.log('>> Press enter key');
 	    conn.shell(function(err, stream) {
 	      if (err) throw err;
 	      stream.on('close', function() {
@@ -266,8 +299,12 @@ function ssh2_console(params) {
 	        conn.end();
 	        process.exit(1);
 	      }).on('data', function(data) {
-	        if (!gs) gs = stream;
+	        if (!gs) {
+				gs = stream;
+		  	    if (gs) gs.write(params.initial_command ? params.initial_command : ''); 
+	        }
 	        if (gs._writableState.sync == false) process.stdout.write(''+data);
+			if (params.on_data) { params.on_data(''+data); }
 	      }).stderr.on('data', function(data) {
 	        console.log('STDERR: ' + data);
 	        process.exit(1);
@@ -286,12 +323,212 @@ function ssh2_console(params) {
 	stdin.resume();
 	stdin.setEncoding( 'utf8' );
 	stdin.on( 'data', function( key ) {
-	  if ( key === '\u0003' ) {
-	    process.exit();
-	  }
+	  // if ( key === '\u0003' ) {
+	  //   process.exit();
+	  // }
 	  if (gs) gs.write('' + key); 
 	});
 }
+
+function tunnel(params){
+	const Client = require('ssh2').Client;
+	const conn = new Client();
+	conn.on('ready', function() {
+	  console.log('Tunneling :: ready');
+	  
+	const server = net.createServer(function (socket) {
+		const remote = new net.Socket();
+		socket.bufferSize = 1 << 14;
+		remote.bufferSize = 1 << 14;
+		socket.setKeepAlive(true, 10 * 1000);
+		remote.setKeepAlive(true, 10 * 1000);
+		
+  	  	conn.forwardOut('0.0.0.0', params.tunnel_port,'localhost',params.tunnel_port, function(err, remote) {
+  	    	if (err) throw err;
+			remote.pipe(socket).pipe(remote);
+			remote.on("error", function (e) {
+				try { socket.end(); } catch (e) { log(e); }
+				try { remote.end(); } catch (e) { log(e); }
+			});
+			socket.on("error", function (e) {
+				try { socket.end(); } catch (e) { log(e); }
+				try { remote.end(); } catch (e) { log(e); }
+			});
+		});
+	});
+	
+	server.on('error', function (e) {
+		if (e.code == "EADDRINUSE" || e.code == "EACCES") {
+			try { server.close(); } catch (e) { log(e) }
+			print('server socket error.');
+		}
+		print("ServerError:" + e);
+	});
+	server.on('listening', function () {
+		console.log(`listening: 0.0.0.0:${params.tunnel_port}`);
+		if (params.on_opened) params.on_opened();
+	});
+	
+	server.listen(params.tunnel_port);
+	  
+	}).connect({
+	  host: params.host,
+	  port: params.port,
+	  privateKey:require('fs').readFileSync(params.privateKey),
+	  keepaliveInterval:30*1000,
+	  username: params.user,
+	});
+}
+
+function action_list() {
+	let funcs = [];
+	if (require.main === module && true) {
+		let lines = fs.readFileSync(__filename).toString().split("\n");
+		for (let line of lines) {
+			if (line.indexOf("f == ")>=0) {
+				if (line.indexOf("else if") >= 0) {
+					let j = {description:"",administrator:false};
+					try{j=Object.assign(j,JSON.parse(line.split("//")[1]));}catch(e){}
+					let obj = {
+						name:line.split("'")[1],
+						description:j.description,
+						administrator:j.administrator,
+						hide:j.hide
+					};
+					funcs.push(obj);
+				}
+			}
+		}
+		{
+			let s = "";
+			let g_add = true;
+			for (let line of lines) {
+				let add = true;
+				if (line.indexOf("@@ACTIONS@@")>=0) {
+					if (line.indexOf("@@START@@")>=0) {
+						s += "		/* @@ACTIONS@@ ";
+						s += "@@START@@ */\n";
+						s += "		funcs=[\n";
+						for (let f of funcs) {
+							s += `			{name:'${f.name}',description:'${f.description}',administrator:${f.administrator},hide:${f.hide}},\n`;
+						}
+						s += "		];\n";
+						//let ss = "funcs='"+JSON.stringify(funcs)+"';\n";
+						//s += ss.split("\n").join() + "\n";
+						add = false;
+						g_add = false;
+					} else if (line.indexOf("@@END@@")>=0) {
+						s += "		/* @@ACTIONS@@ ";
+						s += "@@END@@ */\n";
+						add = false;
+						g_add = true;
+					}
+				}
+				if (add && g_add) s += line+"\n";
+			}
+			fs.writeFileSync(__filename+".js",s);
+		}
+	} else {
+		/* @@ACTIONS@@ @@START@@ */
+		funcs=[
+			{name:'__________images__________',description:'',administrator:false,hide:undefined},
+			{name:'images',description:'Listing default OS images.',administrator:false,hide:undefined},
+			{name:'images_for_admin',description:'Listing default all OS images.',administrator:true,hide:undefined},
+			{name:'registered_images',description:'.',administrator:false,hide:undefined},
+			{name:'create_image',description:'Implementing.',administrator:false,hide:undefined},
+			{name:'create_image_for_admin',description:'Implementing.',administrator:true,hide:undefined},
+			{name:'delete_image',description:'Implementing.',administrator:false,hide:undefined},
+			{name:'image_list_on_instance',description:'Implementing.',administrator:true,hide:undefined},
+			{name:'distribute_image_for_admin',description:'Implementing.',administrator:true,hide:undefined},
+			{name:'publish_image',description:'Implementing.',administrator:true,hide:undefined},
+			{name:'__________ssh_key__________',description:'',administrator:false,hide:undefined},
+			{name:'ssh_keys',description:'Listing registered SSH keys.',administrator:false,hide:undefined},
+			{name:'generate_ssh_key',description:'Just generate RSA key. You have to register after this.',administrator:false,hide:undefined},
+			{name:'register_ssh_key',description:'Register ssh key.',administrator:false,hide:undefined},
+			{name:'delete_ssh_key',description:'Delete a registered ssh key.',administrator:false,hide:undefined},
+			{name:'__________instance__________',description:'',administrator:false,hide:undefined},
+			{name:'products',description:'Listing on-demand products.',administrator:false,hide:undefined},
+			{name:'instances',description:'Listing launched on-demand instances.',administrator:false,hide:undefined},
+			{name:'subscription_list',description:'This API will be implemented on v2.0.',administrator:true,hide:true},
+			{name:'launch_subcription_instance',description:'This API will be implemented on v2.0.',administrator:true,hide:true},
+			{name:'change_instance_tag',description:'Change instance tag.',administrator:false,hide:undefined},
+			{name:'launch',description:'Launch an on-demand instance.',administrator:false,hide:undefined},
+			{name:'terminate',description:'Terminate an instance.',administrator:false,hide:undefined},
+			{name:'start',description:'Start an instance.',administrator:false,hide:undefined},
+			{name:'stop',description:'Stop an instance.',administrator:false,hide:undefined},
+			{name:'restart',description:'Restart an instance.',administrator:false,hide:undefined},
+			{name:'emergency_restart_instance',description:'Force restart an instance.',administrator:false,hide:undefined},
+			{name:'__________network__________',description:'',administrator:false,hide:undefined},
+			{name:'port_list',description:'Listing port maps of instance.',administrator:false,hide:undefined},
+			{name:'open_port',description:'Register port map.',administrator:false,hide:undefined},
+			{name:'close_port',description:'Delete port map.',administrator:false,hide:undefined},
+			{name:'network_description',description:'Get a network information of instance.',administrator:false,hide:undefined},
+			{name:'renew_ipv4',description:'Assign a new IPv4.',administrator:false,hide:undefined},
+			{name:'refresh_ipv4',description:'Refresh IPv4 map of instance.',administrator:false,hide:undefined},
+			{name:'__________administrator__________',description:'',administrator:true,hide:undefined},
+			{name:'compute_nodes',description:'Listing only computing nodes.',administrator:true,hide:undefined},
+			{name:'proxy_nodes',description:'Listing only proxy nodes.',administrator:true,hide:undefined},
+			{name:'nodes',description:'Listing all nodes.',administrator:true,hide:undefined},
+			{name:'instances_for_admin',description:'Listing all instances.',administrator:true,hide:undefined},
+			{name:'products_for_admin',description:'Listing all on-demand products.',administrator:true,hide:undefined},
+			{name:'launch_as_admin',description:'Force launch an instance.',administrator:true,hide:undefined},
+			{name:'login_node',description:'Login to machine resource.',administrator:true,hide:undefined},
+			{name:'login_multi_node',description:'Multiple login to machine resources.',administrator:true,hide:undefined},
+			{name:'__________extensions__________',description:'',administrator:false,hide:undefined},
+			{name:'login',description:'Login to instance.',administrator:false,hide:undefined},
+			{name:'get',description:'Get a file from host.',administrator:false,hide:undefined},
+			{name:'put',description:'Put a file to host.',administrator:false,hide:undefined},
+			{name:'ls',description:'File list on remote.',administrator:false,hide:undefined},
+			{name:'sync',description:'Synchronize files via rsync.',administrator:false,hide:undefined},
+			{name:'tunnel',description:'Port forwarding local to remote.',administrator:false,hide:undefined},
+			{name:'jupyter',description:'Start jupyter and port forward.',administrator:false,hide:undefined},
+		];
+
+		/* @@ACTIONS@@ @@END@@ */
+	}
+	let index = 0;
+	for (let k in funcs) {
+		let f = funcs[k];
+		if (GPUEATER_ADMINISTRATOR || f.administrator == false) {
+			if (f.name.indexOf("_")==0) {
+				// print("");
+				// print(` ${PR("  ",2)}   ${PL(f.name,30)}   ${f.description}`);
+			} else {
+				if (GPUEATER_ADMINISTRATOR || !f.hide) {
+					//print(` ${PR(index,2)} : ${PL(f.name,30)} : ${f.description}`);
+					f.index = index;
+					f.visible = true;
+					index++;
+				}
+			}
+		}
+	}
+	
+	return funcs;
+}
+
+function node_login(node_type,node_type_display) {
+	g.machine_resource_list_for_admin((e,res)=>{
+		if (e) printe(e);
+		else {
+			let index = 0;
+			let clist = [];
+			for (let k in res) {
+				let m = res[k];
+				if (m.node_type == node_type) {
+					let alive = m.elapsed_time > 60 ? 'DEAD' : 'ALIVE';
+					print(`${PR(index++,2)} : ${node_type_display} : ${PL(alive,5)} : ${PR(m.server_label,22)} : ssh ${m.sshd_user}@${m.network_ipv6?m.network_ipv6:m.network_ipv4} -p ${m.sshd_port} -i ~/.ssh/brain_master_key.pem -o ServerAliveInterval=10`);
+					clist.push(m);
+				}
+			}
+			let n = ask(`Login > `);
+			let mm = clist[n];
+			print({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
+			ssh2_console({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
+		}
+	});
+}
+
 
 function main(f) {
 
@@ -300,6 +537,11 @@ function main(f) {
 		} else if (f == '__________images__________') {
 		} else if (f == 'images') { // {"description":"Listing default OS images."}
 			g.image_list((e,res)=>{
+				if (e) printe(e);
+				else { plot_images(res); }
+			});
+		} else if (f == 'images_for_admin') { // {"description":"Listing default all OS images.","administrator":true}
+			g.image_list_for_admin((e,res)=>{
 				if (e) printe(e);
 				else { plot_images(res); }
 			});
@@ -322,7 +564,7 @@ function main(f) {
 					});
 				}
 			});
-		} else if (f == 'create_image_for_admin') { // {"description":"Implementing."}
+		} else if (f == 'create_image_for_admin') { // {"description":"Implementing.","administrator":true}
 			instance_list((e,res)=>{
 				if (e) printe(e);
 				else {
@@ -365,14 +607,14 @@ function main(f) {
 					});
 				}
 			});
-		} else if (f == 'image_list_on_instance') { // {"description":"Implementing."}
+		} else if (f == 'image_list_on_instance') { // {"description":"Implementing.","administrator":true}
 			g.image_list_on_machine_resource_for_admin(ins,(e,res)=>{
 				if (e) printe(e);
 				else {
 					plot_images(res);
 				}
 			});
-		} else if (f == 'distribute_image_for_admin') { // {"description":"Implementing."}
+		} else if (f == 'distribute_image_for_admin') { // {"description":"Implementing.","administrator":true}
 			g.distribute_image_for_admin(ins,(e,res)=>{
 				if (e) printe(e);
 				else {
@@ -385,7 +627,7 @@ function main(f) {
 					});
 				}
 			});
-		} else if (f == 'publish_image') { // {"description":"Implementing."}
+		} else if (f == 'publish_image') { // {"description":"Implementing.","administrator":true}
 			g.image_list((e,res)=>{
 				if (e) printe(e);
 				else {
@@ -444,12 +686,12 @@ function main(f) {
 			display_ondemand_list();
 		} else if (f == 'instances') { // {"description":"Listing launched on-demand instances."}
 			instance_list();
-		} else if (f == 'subscription_list') { // {"description":"This API will be implemented on v2.0.","hide":true}
+		} else if (f == 'subscription_list') { // {"description":"This API will be implemented on v2.0.","hide":true,"administrator":true}
 			print(`Not supported yet.`);
-		} else if (f == 'launch_subcription_instance') { // {"description":"This API will be implemented on v2.0.","hide":true}
+		} else if (f == 'launch_subcription_instance') { // {"description":"This API will be implemented on v2.0.","hide":true,"administrator":true}
 			print(`Not supported yet.`);
 		} else if (f == 'change_instance_tag') { // {"description":"Change instance tag."}
-			select_instance((e,ins)=>{
+			select_instance_auto((e,ins)=>{
 				ins.tag = ask('Tag > ');
 				print('');
 				g.change_instance_tag(ins,(e,res)=>{
@@ -491,9 +733,11 @@ function main(f) {
 				selected(ssh_key);
 				print(``)
 				print(``)
+				let tag = ask(`Tag > `);
+				print(``)
 				print(`Launching...`)
-				let tm = setInterval(()=>{print(".")},1000);
-				g.launch_ondemand_instance({product_id:p.id,image:img.alias,ssh_key_id:ssh_key.id},(e,res)=>{
+				let tm = setInterval(()=>{print(".")},5000);
+				g.launch_ondemand_instance({product_id:p.id,image:img.alias,ssh_key_id:ssh_key.id,tag:tag},(e,res)=>{
 					if (e) { printe(e); }
 					else { print(res); }
 					clearInterval(tm);
@@ -556,7 +800,7 @@ function main(f) {
 			});
 		} else if (f == '__________network__________') {
 		} else if (f == 'port_list') { // {"description":"Listing port maps of instance."}
-			select_instance((e,ins)=>{
+			select_instance_auto((e,ins)=>{
 				g.port_list(ins,(e,res)=>{
 					if (e) printe(e);
 					else {
@@ -568,7 +812,7 @@ function main(f) {
 				});
 			});
 		} else if (f == 'open_port') { // {"description":"Register port map."}
-			select_instance((e,ins)=>{
+			select_instance_auto((e,ins)=>{
 				ins.port = ask('Open port > ');
 				print('');
 				g.open_port(ins,(e,res)=>{
@@ -588,7 +832,7 @@ function main(f) {
 			});
 			
 		} else if (f == 'close_port') { // {"description":"Delete port map."}
-			select_instance((e,ins)=>{
+			select_instance_auto((e,ins)=>{
 				ins.port = ask('Close port > ');
 				print('');
 				g.close_port(ins,(e,res)=>{
@@ -608,7 +852,7 @@ function main(f) {
 			});
 			
 		} else if (f == 'network_description') { // {"description":"Get a network information of instance."}
-			select_instance((e,ins)=>{
+			select_instance_auto((e,ins)=>{
 				g.network_description(ins,(e,res)=>{
 					if (e) printe(e);
 					else {
@@ -655,54 +899,13 @@ function main(f) {
 				});
 			});
 
+		} else if (f == '__________administrator__________') {  // {"administrator":true}
 		} else if (f == 'compute_nodes') {  // {"description":"Listing only computing nodes.","administrator":true}
-			g.machine_resource_list_for_admin((e,res)=>{
-				if (e) printe(e);
-				else {
-					let index = 0;
-					let clist = [];
-					for (let k in res) {
-						let m = res[k];
-						if (m.node_type == 1) {
-							let alive = m.elapsed_time > 60 ? 'DEAD' : 'ALIVE';
-							print(`${PR(index++,2)} : C : ${PL(alive,5)} : ${PR(m.server_label,22)} : ssh ${m.sshd_user}@${m.network_ipv6?m.network_ipv6:m.network_ipv4} -p ${m.sshd_port} -i ~/.ssh/brain_master_key.pem -o ServerAliveInterval=10`);
-							clist.push(m);
-						}
-					}
-					let n = ask(`Login > `);
-					let mm = clist[n];
-					// if (!mm) for (let v of mm) { if (v.tag == n) { ins = v;break;}}
-					// execSync(ins.ssh_command);
-					
-					print({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
-					ssh2_console({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
-					
-				}
-			});
+			node_login(1,'C');
 		} else if (f == 'proxy_nodes') {  // {"description":"Listing only proxy nodes.","administrator":true}
-			g.machine_resource_list_for_admin((e,res)=>{
-				if (e) printe(e);
-				else {
-					let index = 0;
-					let clist = [];
-					for (let k in res) {
-						let m = res[k];
-						if (m.node_type == 3) {
-							let alive = m.elapsed_time > 60 ? 'DEAD' : 'ALIVE';
-							print(`${PR(index++,2)} : P : ${PL(alive,5)} : ${PR(m.server_label,22)} : ssh ${m.sshd_user}@${m.network_ipv6?m.network_ipv6:m.network_ipv4} -p ${m.sshd_port} -i ~/.ssh/brain_master_key.pem -o ServerAliveInterval=10`);
-							clist.push(m);
-						}
-					}
-					let n = ask(`Login > `);
-					let mm = clist[n];
-					// if (!mm) for (let v of mm) { if (v.tag == n) { ins = v;break;}}
-					// execSync(ins.ssh_command);
-					
-					print({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
-					ssh2_console({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
-					
-				}
-			});
+			node_login(3,'P');
+		} else if (f == 'front_nodes') {  // {"description":"Listing only front nodes.","administrator":true}
+			node_login(0,'F');
 		} else if (f == 'nodes') {  // {"description":"Listing all nodes.","administrator":true}
 			g.machine_resource_list_for_admin((e,res)=>{
 				if (e) printe(e);
@@ -723,15 +926,11 @@ function main(f) {
 					}
 					let n = ask(`Login > `);
 					let mm = clist[n];
-					// if (!mm) for (let v of mm) { if (v.tag == n) { ins = v;break;}}
-					// execSync(ins.ssh_command);
-					
 					print({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
 					ssh2_console({privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4});
-					
 				}
 			});
-		} else if (f == 'instance_list_for_admin') { // {"description":"Listing all instances.","administrator":true}
+		} else if (f == 'instances_for_admin') { // {"description":"Listing all instances.","administrator":true}
 		} else if (f == 'products_for_admin') { // {"description":"Listing all on-demand products.","administrator":true}
 			products_for_admin((e,res)=>{
 				if (e) printe(e);
@@ -771,16 +970,18 @@ function main(f) {
 				selected(ssh_key);
 				print(``)
 				print(``)
+				let tag = ask(`Tag > `);
+				print(``)
 				print(`Launching...`)
-				let tm = setInterval(()=>{print(".")},1000);
-				g.launch_as_admin({product_id:p.id,image:img.alias,ssh_key_id:ssh_key.id},(e,res)=>{
+				let tm = setInterval(()=>{print(".")},5000);
+				g.launch_as_admin({product_id:p.id,image:img.alias,ssh_key_id:ssh_key.id,tag:tag},(e,res)=>{
 					if (e) { printe(e); }
 					else { print(res); }
 					clearInterval(tm);
 				});
 			
 			});
-		} else if (f == 'node_login') { // {"description":"Login to machine resource.","administrator":true}
+		} else if (f == 'login_node') { // {"description":"Login to machine resource.","administrator":true}
 			instance_list((e,res)=>{
 				if (e) printe(e);
 				else {
@@ -791,7 +992,7 @@ function main(f) {
 					ssh2_console({privateKey:path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`),port:ins.sshd_port,user:ins.sshd_user,host:ins.ipv4});
 				}
 			});
-		} else if (f == 'multi_node_login') {  // {"description":"Multiple login to machine resources.","administrator":true}
+		} else if (f == 'login_multi_node') {  // {"description":"Multiple login to machine resources.","administrator":true}
 			machine_resource_list_for_admin((e,s)=>{
 				print(``);
 				let ntypes = {'0':'front','1':'compute','3':'proxy','9':'all'};
@@ -809,7 +1010,7 @@ function main(f) {
 				let cmd = "csshX ";
 				for (let k in s) {
 					let m = s[k];
-					if (m.node_type == 00000) {
+					if (m.node_type == 1) {
 						cmd += ` _cc_${index}`;
 						st += `Host _cc_${index}\n`;
 						st += `HostName ${m.network_ipv6||m.network_ipv4}\n`;
@@ -833,90 +1034,178 @@ function main(f) {
 			instance_list((e,res)=>{
 				if (e) printe(e);
 				else {
-					let n = ask(`Login > `);
+					let n = 0;
+					if (res.length != 1) { n = ask(`Login > `); }
+					
 					let ins = res[n];
 					if (!ins) for (let v of res) { if (v.tag == n) { ins = v;break;}}
 					// execSync(ins.ssh_command);
 					ssh2_console({privateKey:path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`),port:ins.sshd_port,user:ins.sshd_user,host:ins.ipv4});
 				}
 			});
-		} else if (f == 'cp') { // {"description":"Copy a file between remote and local."}
+		} else if (f == 'get') { // {"description":"Get a file from host."}
 			let second = argv.shift();
 			if (second) {
-				print(` Source path => "${second}"`);
+				print(` Path => "${second}"`);
 				print(``);
-				let dpath = ask(`Destination path > `);
-			
+				let source = second;
+				let dest = argv.shift();
+				if (!dest) dest = ".";
 				instance_list((e,res)=>{
 					if (e) printe(e);
 					else {
 						print(``);
-						let n = ask(`Which instance? > `);
+						let n = 0;
+						if (res.length != 1) {
+							n = ask(`Which instance? > `);
+						}
 						print(``);
 						let ins = res[n];
 						if (!ins) { printe(` Error: "Invalid instance number" => "${n}"`);process.exit(9); }
-					
-						let params = {
-						    host: ins.ipv4,
-						    path: dpath,
-						    username: ins.sshd_user,
-							privateKey: fs.readFileSync(path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`)),
-							port: ins.sshd_port,
-						};
-						console.log(path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`));
-					
-						execSync(`scp `);
+						let cmd = `scp -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${ins.sshd_user}@${ins.ipv4}:${source} ${dest} \n`;
+						print(``);
+						print(execSync(cmd).toString());
+						print(`remote: "${source}" => local: "${dest}"`);
+						print(``);
 					}
 				});
 		
 			} else {
 				print(`Error: Invalid arguments`)
-				print(`[Command] cp [File]`)
+				print(`[Command] get [path]`)
 			}
+		} else if (f == 'put') { // {"description":"Put a file to host."}
+			let second = argv.shift();
+			if (second) {
+				print(` Path => "${second}"`);
+				print(``);
+				let source = second;
+				let dest = argv.shift();
+				if (!dest) dest = ".";
+				instance_list((e,res)=>{
+					if (e) printe(e);
+					else {
+						print(``);
+						let n = 0;
+						if (res.length != 1) {
+							n = ask(`Which instance? > `);
+						}
+						print(``);
+						let ins = res[n];
+						if (!ins) { printe(` Error: "Invalid instance number" => "${n}"`);process.exit(9); }
+						let cmd = `scp -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${source} ${ins.sshd_user}@${ins.ipv4}:${dest} \n`;
+						print(``);
+						print(execSync(cmd).toString());
+						print(`local: "${source}" => remote: "${dest}"`);
+						print(``);
+					}
+				});
 		
+			} else {
+				print(`Error: Invalid arguments`)
+				print(`[Command] put [path]`)
+			}
+		} else if (f == 'cmd') { // {"description":"Do any command on instance."}
+			select_instance_auto((e,ins)=>{
+				let icmd = argv.length > 0 ? argv.join(" ") : ask(" Command > ");
+				let cmd = `ssh ${ins.sshd_user}@${ins.ipv4} -p ${ins.sshd_port} -i ~/.ssh/${ins.ssh_key_file_name}.pem -o ServerAliveInterval=10 '${icmd}'\n`;
+				print(``);
+				print(execSync(cmd).toString());
+			});
+		} else if (f == 'ls') { // {"description":"File list on remote."}
+			let second = argv.shift();
+			if (!second) second = "~/";
+			if (second) {
+				print(` Source path => "${second}"`);
+				print(``);
+				let dpath = second;
+			
+				instance_list((e,res)=>{
+					if (e) printe(e);
+					else {
+						print(``);
+						let n = 0;
+						if (res.length != 1) {
+							n = ask(`Which instance? > `);
+						}
+						print(``);
+						let ins = res[n];
+						if (!ins) { printe(` Error: "Invalid instance number" => "${n}"`);process.exit(9); }
+					
+						let cmd = `ssh ${ins.sshd_user}@${ins.ipv4} -p ${ins.sshd_port} -i ~/.ssh/${ins.ssh_key_file_name}.pem -o ServerAliveInterval=10 'ls -la ${dpath}'\n`;
+						print(``);
+						print(execSync(cmd).toString());
+					}
+				});
+		
+			} else {
+				print(`Error: Invalid arguments`)
+				print(`[Command] ls [Path]`)
+			}
 		} else if (f == 'sync') { // {"description":"Synchronize files via rsync."}
 		} else if (f == 'tunnel') { // {"description":"Port forwarding local to remote."}
-		} else if (f == 'jupyter') { // {"description":"Start jupyter and port foward."}
 			instance_list((e,res)=>{
 				if (e) printe(e);
 				else {
-					let n = ask(`Connect to > `);
+					print(``);
+					let n = 0;
+					if (res.length != 1) {
+						n = ask(`Which instance? > `);
+					}
+					print(``);
 					let ins = res[n];
 					if (!ins) { printe(` Error: "Invalid instance number" => "${n}"`);process.exit(9); }
-					let port = parseInt(Math.random()*10000+50000);
-					let cmd = ins.ssh_command+" -L ${port}:localhost:${port} \"jupyter notebook --allow-root \"";
-					print(cmd);
-					setTimeout(()=>{execSync(`open http://localhost:${port}/`);},2000);
-					exec(cmd, (err, stdout, stderr) => {
-					  if (err) { console.log(err); }
-					  console.log(stdout);
-					});
+				
+					let port = ask(`Tunnel port > `);
+					let mm = ins;
+					let param = {privateKey:path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.ipv4?mm.ipv4:mm.ipv6,tunnel_port:port};
+					print(param);
+					tunnel(param);
 				}
 			});
-
+		} else if (f == 'jupyter') { // {"description":"Start jupyter and port forward."}
+			select_instance_auto((e,ins)=>{
+				let mm = ins;
+				let param = {privateKey:path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.ipv4?mm.ipv4:mm.ipv6};
+				param.initial_command = "jupyter notebook --allow-root\n";
+				let buf = "";
+				param.on_data = (data)=>{
+					buf += data;
+					let sp = buf.split("\n");
+					buf = sp.pop();
+					for (let k in sp) {
+						let line = sp[k];
+						if (line.indexOf("http://localhost:")>=0) {
+							let port = line.split("http://localhost:")[1].split("/")[0];
+							param.tunnel_port = 8888;
+							param.on_opened = ()=>{ execSync(`open ${line}`) };
+							tunnel(param);
+							break;
+						}
+					}
+				};
+				ssh2_console(param);
+			});
+		} else if (f == 'version') { // {"description":"Version of client."}
+			print("1.1.0");
 		} else {
 		
 		}
 	} else {
 		print('')
 		print(`[Command] [Action] [Args...]`);
-		print(`  instnaces/products/launch/terminate/login/cp/sync/sshkey/port/tunnel/network/start/stop/restart`)
 		print(`  `)
 		print(`  Example`)
 		print(`   > gpueater products`)
 		print(`  `)
-		/** actions **/
-		let actions = [];
-		/** actions **/
-		let index = 0;
+		let actions = action_list();
 		print(``);
 		for (let v of actions) {
-			if (v.administrator) {
-				if (administrator_api)
-					print(` ${index++} : ${v.name} - ${v.description}`);
-			} else {
-				if (!v.hide) {
-					print(` ${index++} : ${v.name} - ${v.description}`);
+			if (GPUEATER_ADMINISTRATOR || v.administrator == false) {
+				if (v.name.indexOf("____")==0) {
+					print(` ${PR(v.index != null?v.index:"",2)}   ${PR(v.name,30)}`);
+				} else {
+					print(` ${PR(v.index != null?v.index:"",2)} : ${PR(v.name,30)} : ${PL(v.description,80).trim()}`);
 				}
 			}
 		}
@@ -927,7 +1216,7 @@ function main(f) {
 		if (isNaN(parseInt(n))) {
 			for (let v of actions) { if (v.name == n) { action = v;break; } }
 		} else {
-			action = actions[n];
+			for (let v of actions) { if (v.index == n) { action = v;break; } }
 		}
 		print(``);
 		if (!action) { printe(`Invalid action.`);process.exit(9); }
@@ -939,41 +1228,5 @@ function main(f) {
 	}
 }
 
-// main(f);
-let st = fs.readFileSync(__filename).toString();
-let lines = st.split("\n");
-let funcs = [];
-for (let line of lines) {
-	if (line.indexOf("f == ")>=0) {
-		if (line.indexOf("else if") >= 0) {
-			let j = {description:"",administrator:false};
-			try{j=Object.assign(j,JSON.parse(line.split("//")[1]));}catch(e){}
-			let obj = {
-				name:line.split("'")[1],
-				description:j.description,
-				administrator:j.administrator,
-				hide:j.hide
-			};
-			funcs.push(obj);
-		}
-	}
-}
-let index = 0;
-for (let k in funcs) {
-	let f = funcs[k];
-	if (f.administrator == false) {
-		if (f.name.indexOf("_")==0) {
-			print("");
-			print(` ${PR("  ",2)}   ${PL(f.name,30)}   ${f.description}`);
-		} else {
-			if (!f.hide) {
-				print(` ${PR(index,2)} : ${PL(f.name,30)} : ${f.description}`);
-				index++;
-			}
-		}
-	}
-}
 
-
-
-
+main(f);

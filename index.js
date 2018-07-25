@@ -45,7 +45,6 @@ Object.defineProperty(global, '__function', {get: function() { return __stack[1]
 var base = process.env.GPUEATER_URL||"https://www.gpueater.com";
 var global_header = {"User-Agent":"NodeJS-API"};
 var eater_config = null;
-var administrator_api = process.env.GPUEATER_ADMINISTRATOR;
 var alist=["raccoon", "dog", "wild boar", "rabbit", "cow", "horse", "wolf", "hippopotamus", "kangaroo", "fox", "giraffe", "bear", "koala", "bat", "gorilla", "rhinoceros", "monkey", "deer", "zebra", "jaguar", "polar bear", "skunk", "elephant", "raccoon dog", "animal", "reindeer", "rat", "tiger", "cat", "mouse", "buffalo", "hamster", "panda", "sheep", "leopard", "pig", "mole", "goat", "lion", "camel", "squirrel", "donkey"];
 var blist=["happy", "glad", "comfortable", "pleased", "delighted", "relieved", "calm", "surprised", "exciting"];
 
@@ -59,6 +58,7 @@ try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (
 		let obj = {gpueater:{email:email,password:pass}};
 		fs.writeFileSync(path.join(HOME,".eater"),JSON.stringify(obj));
 		console.info(`GPUEater config saved to ${path.join(HOME,".eater")}.`);
+		eater_config = obj;
 	}
 }
 
@@ -516,7 +516,7 @@ function image_list_for_admin(func) { func_get("/console/servers/image_list_for_
 function machine_resource_list_for_admin(func) { func_get("/console/servers/machine_resource_list_for_admin",(e,res)=>{func(e,res)}, [], {}); }
 function instance_list_for_admin(func) { func_get("/console/servers/instance_list_for_admin",(e,res)=>{func(e,res)}, [], {}); }
 function products_for_admin(func) { func_get("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, [], {}); }
-function launch_as_admin(form,func) { func_post("/console/servers/product_list_for_admin",(e,res)=>{func(e,res)}, ["product_id","ssh_key_id","image","tag"], form); }
+function launch_as_admin(form,func) { func_post("/console/servers/launch_as_admin",(e,res)=>{func(e,res)}, ["product_id","ssh_key_id","image","tag"], form); }
 function assign_instance_for_admin(form,func) { func_post("/console/servers/assign_instance_for_admin",(e,res)=>{func(e,res)}, ["instance_id","user_id"], form); }
 function assign_network_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
 function create_distribution_image_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
