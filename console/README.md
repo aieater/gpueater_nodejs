@@ -286,7 +286,7 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 
 ##### Image
 |  Version  |  Action | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v0.8  |  images  | Listing all default OS images |
 |  v1.5  |  registered_images  |  Listing user defined images |
 |  v1.5  |  snapshot_instance  |  Creating a snapshot |
@@ -298,7 +298,7 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 
 ##### SSH Key
 |  Version  |  Action | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v0.8  |  ssh_keys  |  Listing all ssh keys |
 |  v1.0  |  generate_ssh_key  |  Generating Key Pair |
 |  v1.0  |  register_ssh_key  |  Registering an SSH key |
@@ -306,7 +306,7 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 
 ##### Instance
 |  Version  |  Action | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v0.8  |  products  |  Listing all on-demand instances |
 |  v0.8  |  launch   |  Launch an on-demand instance |
 |  v0.8  |  instances  |  Listing all launched instances |
@@ -319,7 +319,7 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 
 ##### Network
 |  Version  |  Action   | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v1.0  |  port_list |  Listing all ports |
 |  v1.0  |  open_port |  Opening a port for inbound traffic |
 |  v1.0  |  close_port |  Closing a port for inbound traffic |
@@ -329,7 +329,7 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 
 ##### Storage
 |  Version  |  Action | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v2.0  |  create_volume |  Creating an extended volume |
 |  v2.0  |  attach_volume |  Attaching an extended volume to an instance |
 |  v2.0  |  detach_volume |  Detaching an extended volume from an instance |
@@ -338,7 +338,7 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 
 ##### Subscription
 |  Version  |  Action | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v2.0  |  subscription_instance_list  |  Listing all items of subscription instance |
 |  v2.0  |  subscription_storage_list   |  Listing all items of storages volume for subscription instance |
 |  v2.0  |  subscription_network_list  |  Listing all items of subscription networks |
@@ -351,21 +351,21 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 
 ##### Special
 |  Version  |  Action | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v2.5  |  live_migration   |  Moving a running instance between different physical machines without termination |
 |  v2.5  |  cancel_transaction   |  Canceling a transaction |
 |  v2.5  |  peak_transaction   |  This API reports current status information of a transaction |
 
 ##### Payment
 |  Version  |  Action | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v1.0  |  invoice_list  |  Listing invoices for on-demand instances |
 |  v2.0  |  subscription_invoice_list  |  Listing invoices for subscription instances |
 |  v1.5  |  make_invoice  |  Obtain a pdf invoice |
 
 ##### Extensions
 |  Version  |  Action | Description  |
-| ---- | ---- | ---- | ---- |
+| ---- | ---- | ---- |
 |  v1.2  |  get |  Copying a file from remote. |
 |  v1.2  |  put |  Copying a file to remote. |
 |  v1.2  |  cmd |  Executing an any command on remote. |
