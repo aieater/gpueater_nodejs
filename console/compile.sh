@@ -4,4 +4,4 @@ EXENAME=gpueater_`uname`
 nexe -o $EXENAME  --build -p /usr/bin/python --make ['--jobs=4']
 echo "$EXENAME stand alone execution test."
 echo ""
-./$EXENAME
+./$EXENAME version
