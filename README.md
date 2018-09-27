@@ -183,12 +183,13 @@ g.image_list((error,res)=>{
 ##### Image
 |  Version  |  Function  | Required | Description  |
 | ---- | ---- | ---- | ---- |
-|  v0.8  |  image_list(func)  |  | Listing all OS images |
-|  v1.5  |  snapshot_instance(form, func)  | instance_id, machine_resource_id |  Creating a snapshot |
-|  v1.5  |  delete_snapshot(form, func)  | instance_id, machine_resource_id |  Deleting a snapshot |
-|  v1.5  |  create_image(form, func)  | instance_id, machine_resource_id |  Adding an user defined OS image |
-|  v2.0  |  register_image(form, func)  | url |  Registering an user defined OS image on the internet |
-|  v1.5  |  delete_image(form, func)  | image |  Deleting an OS image |
+|  v0.8  |  image_list()  |  | Listing all OS images |
+|  v1.7  |  snapshot_instance(form)  | instance_id, machine_resource_id |  Creating a snapshot |
+|  v1.7  |  delete_snapshot(form)  | instance_id, machine_resource_id |  Deleting a snapshot |
+|  v1.5  |  registered_image_list()  |  | Listing all user defined OS images |
+|  v1.5  |  create_image(form)  | instance_id, machine_resource_id |  Adding an user defined OS image |
+|  v2.0  |  import_image(form)  | url |  Registering an user defined OS image on the internet |
+|  v1.5  |  delete_image(form)  | image |  Deleting an OS image |
 
 
 ##### SSH Key
@@ -226,17 +227,17 @@ g.generate_ssh_key((error,res)=>{
 ##### Instance
 |  Version  |  Function  | Required | Description  |
 | ---- | ---- | ---- | ---- |
-|  v0.8  |  ondemand_list(func)  |  |  Listing all on-demand instances |
-|  v2.0  |  subscription_list(func)  |  |  Listing all subscription instances |
-|  v0.8  |  launch_ondemand_instance(form, func)  | product_id, image, ssh_key_id |  Launch an on-demand instance |
-|  v2.0  |  launch_subcription_instance(form, func)  | subscription_id, image, ssh_key_id |  Launch a subscription instance |
-|  v0.8  |  instance_list(func)  |  |  Listing all launched instances |
-|  v1.0  |  change_instance_tag(form, func)  | instance_id, tag |  Changing an instance tag |
-|  v1.0  |  start_instance(form, func)  | instance_id, machine_resource_id |  Starting an instance. If the instance is already RUNNING, nothing is going to happen |
-|  v1.0  |  stop_instance(form, func)  | instance_id, machine_resource_id |  Stopping an instance. If the instance is already STOPPED, nothing is going to happen |
-|  v1.0  |  restart_instance(form, func)  | instance_id, machine_resource_id |  Restarting an instance |
-|  v0.8  |  terminate_instance(form, func)  | instance_id, machine_resource_id |  Terminating an instance |
-|  v1.0  |  emergency_restart_instance(form, func)  | instance_id, machine_resource_id |  Restarting an instance emergently when an instance is hung up |
+|  v0.8  |  ondemand_list()  |  |  Listing all on-demand instances |
+|  v2.0  |  subscription_list()  |  |  Listing all subscription instances |
+|  v0.8  |  launch_ondemand_instance(form)  | product_id, image, ssh_key_id |  Launch an on-demand instance |
+|  v2.0  |  launch_subcription_instance(form)  | subscription_id, image, ssh_key_id |  Launch a subscription instance |
+|  v0.8  |  instance_list()  |  |  Listing all launched instances |
+|  v1.0  |  change_instance_tag(form)  | instance_id, tag |  Changing an instance tag |
+|  v1.0  |  start_instance(form)  | instance_id, machine_resource_id |  Starting an instance. If the instance is already RUNNING, nothing is going to happen |
+|  v1.0  |  ~~stop_instance(form)~~[Deprecated]  | instance_id, machine_resource_id |  Stopping an instance. If the instance is already STOPPED, nothing is going to happen |
+|  v1.0  |  restart_instance(form)  | instance_id, machine_resource_id |  Restarting an instance |
+|  v0.8  |  terminate_instance(form)  | instance_id, machine_resource_id |  Terminating an instance |
+|  v1.0  |  emergency_restart_instance(form)  | instance_id, machine_resource_id |  Restarting an instance emergently when an instance is hung up |
 
 The "machine_resource_id" is including an instance object.  See the following sample code.
 
@@ -262,39 +263,39 @@ g.instance_list((error,res)=>{
 ##### Network
 |  Version  |  Function  | Required | Description  |
 | ---- | ---- | ---- | ---- |
-|  v1.0  |  port_list(form, func)  | instance_id |  Listing all ports |
-|  v1.0  |  open_port(form, func)  | instance_id, connection_id, port |  Opening a port for inbound traffic |
-|  v1.0  |  close_port(form, func)  | instance_id, connection_id, port |  Closing a port for inbound traffic |
-|  v1.0  |  renew_ipv4(form, func)  | instance_id |  Getting a new IPv4 address |
-|  v1.0  |  network_description(form, func)  | instance_id |  This API reports current network status information |
+|  v1.0  |  port_list(form)  | instance_id |  Listing all ports |
+|  v1.0  |  open_port(form)  | instance_id, connection_id, port |  Opening a port for inbound traffic |
+|  v1.0  |  close_port(form)  | instance_id, connection_id, port |  Closing a port for inbound traffic |
+|  v1.0  |  renew_ipv4(form)  | instance_id |  Getting a new IPv4 address |
+|  v1.0  |  network_description(form)  | instance_id |  This API reports current network status |
 
 ##### Storage
 |  Version  |  Function  | Required | Description  |
 | ---- | ---- | ---- | ---- |
-|  v2.0  |  create_volume(form, func)  | size |  Creating an extended volume |
-|  v2.0  |  attach_volume(form, func)  | volume_id, instance_id |  Attaching an extended volume to an instance |
-|  v2.0  |  delete_volume(form, func)  | volume_id |  Deleting an extended volume |
-|  v2.0  |  transfer_volume(form, func)  | volume_id,region_id |  Transfering an extended volume to another region |
+|  v2.0  |  create_volume(form)  | size |  Creating an extended volume |
+|  v2.0  |  attach_volume(form)  | volume_id, instance_id |  Attaching an extended volume to an instance |
+|  v2.0  |  delete_volume(form)  | volume_id |  Deleting an extended volume |
+|  v2.0  |  transfer_volume(form)  | volume_id,region_id |  Transfering an extended volume to another region |
 
 ##### Subscription
 |  Version  |  Function  | Required | Description  |
 | ---- | ---- | ---- | ---- |
-|  v2.0  |  subscription_instance_list(func, func)  |  |  Listing all items of subscription instance |
-|  v2.0  |  subscription_storage_list(func)  |  |  Listing all items of storages volume for subscription instance |
-|  v2.0  |  subscription_network_list(func)  |  |  Listing all items of subscription networks |
-|  v2.0  |  subscribe_instance(form, func)  | subscription_id |  Subscribing a subscription instance |
-|  v2.0  |  unsubscribe_instance(form, func)  | subscription_id |  Canceling a subscription instance |
-|  v2.0  |  subscribe_storage(form, func)  | subscription_id |  Subscribing a storage volume for subscription instance |
-|  v2.0  |  unsubscribe_storage(form, func)  | subscription_id |  Canceling a storage volume for subscription instance |
-|  v2.0  |  subscribe_network(form, func)  | subscription_id |  Subscribing a network product |
-|  v2.0  |  unsubscribe_network(form, func)  | subscription_id |  Canceling a network product |
+|  v2.0  |  subscription_instance_list()  |  |  Listing all subscription instances |
+|  v2.0  |  subscription_storage_list()  |  |  Listing all storage volumes |
+|  v2.0  |  subscription_network_list()  |  |  Listing all subscription networks |
+|  v2.0  |  subscribe_instance(form)  | subscription_id |  Subscribing a subscription instance |
+|  v2.0  |  unsubscribe_instance(form)  | subscription_id |  Canceling a subscription instance |
+|  v2.0  |  subscribe_storage(form)  | subscription_id |  Subscribing a storage volume |
+|  v2.0  |  unsubscribe_storage(form)  | subscription_id |  Canceling a storage volume |
+|  v2.0  |  subscribe_network(form)  | subscription_id |  Subscribing a network product |
+|  v2.0  |  unsubscribe_network(form)  | subscription_id |  Canceling a network product |
 
 ##### Special
 |  Version  |  Function  | Required | Description  |
 | ---- | ---- | ---- | ---- |
-|  v2.5  |  live_migration(form, func)  | product_id, region_id, connection_id |  Moving a running instance between different physical machines without termination |
-|  v2.5  |  cancel_transaction(form, func)  | transaction_id |  Canceling a transaction |
-|  v2.5  |  peak_transaction(form, func)  | transaction_id |  This API reports current status information of a transaction |
+|  v2.5  |  live_migration(form)  | product_id, region_id, connection_id |  Moving a running instance to another physical machine without termination |
+|  v2.5  |  cancel_transaction(form)  | transaction_id |  Canceling a transaction |
+|  v2.5  |  peak_transaction(form)  | transaction_id |  checking a current transaction status |
 
 ##### Payment
 |  Version  |  Function  | Required | Description  |
