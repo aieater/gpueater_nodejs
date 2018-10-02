@@ -8,6 +8,10 @@ This document is intended to describe how to set up this API and how to control 
 Before getting started, register your account on GPUEater.
 https://www.gpueater.com/
 
+### AMD Radeon GPU, ROCm information.
+Also see https://github.com/aieater/rocm_tensorflow_info
+
+
 ### Prerequisites
 1. NodeJS 8.x is required to run GPUEater API console.
 2. Create a JSON file in accordance with the following instruction.
