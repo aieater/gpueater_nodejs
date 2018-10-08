@@ -258,7 +258,7 @@ function do_action(f) {
         });
 
     } else if (f == 'version') { //@FUNC@ {"description":"Version of client."}
-        /*@@VERSION_START@@*/print("07/27/2018 20:59")/*@@VERSION_END@@*/
+        /*@@VERSION_START@@*/print("v1.5")/*@@VERSION_END@@*/
     } else if (f == 'help') { //@FUNC@ {"description":"Display help."}
         display_help();
     } else if (f == 'upgrade') { //@FUNC@ {"description":"Upgrade API self."}
@@ -332,38 +332,38 @@ if (require.main === module) {
 /* @@ DESCRPTIONS @@ START */
 const descriptions = [
   { key: '__________extensions__________',
-  value: { name: '__________extensions__________' } }, 
+  value: { name: '__________extensions__________' } },
   { key: 'login',
-  value: { description: 'Login to instance.', name: 'login' } }, 
+  value: { description: 'Login to instance.', name: 'login' } },
   { key: 'get',
-  value: { description: 'Get a file from host.', name: 'get' } }, 
+  value: { description: 'Get a file from host.', name: 'get' } },
   { key: 'put',
-  value: { description: 'Put a file to host.', name: 'put' } }, 
+  value: { description: 'Put a file to host.', name: 'put' } },
   { key: 'cmd',
-  value: { description: 'Do any command on instance.', name: 'cmd' } }, 
+  value: { description: 'Do any command on instance.', name: 'cmd' } },
   { key: 'ls',
-  value: { description: 'File list on remote.', name: 'ls' } }, 
+  value: { description: 'File list on remote.', name: 'ls' } },
   { key: 'sync',
-  value: { description: 'Synchronize files via rsync.', name: 'sync' } }, 
+  value: { description: 'Synchronize files via rsync.', name: 'sync' } },
   { key: 'tunnel',
-  value: 
+  value:
    { description: 'Port forwarding local to remote.',
-     name: 'tunnel' } }, 
+     name: 'tunnel' } },
   { key: 'jupyter',
-  value: 
+  value:
    { description: 'Start jupyter and port forward.',
-     name: 'jupyter' } }, 
+     name: 'jupyter' } },
   { key: 'jupyter_as_admin',
-  value: 
+  value:
    { description: 'Start jupyter and port forward.',
      administrator: true,
-     name: 'jupyter_as_admin' } }, 
+     name: 'jupyter_as_admin' } },
   { key: 'version',
-  value: { description: 'Version of client.', name: 'version' } }, 
+  value: { description: 'Version of client.', name: 'version' } },
   { key: 'help',
-  value: { description: 'Display help.', name: 'help' } }, 
+  value: { description: 'Display help.', name: 'help' } },
   { key: 'upgrade',
-  value: { description: 'Upgrade API self.', name: 'upgrade' } }, 
+  value: { description: 'Upgrade API self.', name: 'upgrade' } },
 ];
 /* @@ DESCRPTIONS @@ END */
 
@@ -373,6 +373,3 @@ module.exports = {
     do_action:do_action,
     descriptions:descriptions
 }
-
-
-

@@ -39,17 +39,12 @@ function do_action(f) {
             if (e) printe(e);
             else { plot_images(res); }
         });
-    } else if (f == 'images_for_admin') { //@FUNC@ {"description":"Listing default all OS images.","administrator":true}
-        g.image_list_for_admin((e,res)=>{
-            if (e) printe(e);
-            else { plot_images(res); }
-        });
-    } else if (f == 'registered_images') { //@FUNC@ {"description":"."}
+    } else if (f == 'registered_images') { //@FUNC@ {"description":"Listing all user defined OS images"}
         g.registered_image_list((e,res)=>{
             if (e) printe(e);
             else { plot_images(res); }
         });
-    } else if (f == 'create_image') { //@FUNC@ {"description":"Implementing."}
+    } else if (f == 'create_image') { //@FUNC@ {"description":"Adding an user defined OS image"}
         select_instance_auto((e,ins)=>{
             if (e) printe(e);
             else {
@@ -60,7 +55,25 @@ function do_action(f) {
                 });
             }
         });
-    } else if (f == 'create_image_for_admin') { //@FUNC@ {"description":"Implementing.","administrator":true}
+    } else if (f == 'delete_image') { //@FUNC@ {"description":"Deleting an OS image."}
+        g.registered_image_list((e,res)=>{
+            if (e) printe(e);
+            else {
+                plot_images(res);
+                let n = ask(`Delete > `);
+                let img = res[n];
+                g.delete_image(img,(e,res)=>{
+                    if (e) printe(e);
+                    else { g.image_list((e,res)=>{ if (e) printe(e); else { plot_images(res); } }); }
+                });
+            }
+        });
+    } else if (f == 'images_for_admin') { //@FUNC@ {"description":"Listing default all OS images.","administrator":true, "hide":true}
+        g.image_list_for_admin((e,res)=>{
+            if (e) printe(e);
+            else { plot_images(res); }
+        });
+    } else if (f == 'create_image_for_admin') { //@FUNC@ {"description":"Implementing.","administrator":true, "hide":true}
         instance_list((e,res)=>{
             if (e) printe(e);
             else {
@@ -90,27 +103,14 @@ function do_action(f) {
                 });
             }
         });
-    } else if (f == 'delete_image') { //@FUNC@ {"description":"Implementing."}
-        g.registered_image_list((e,res)=>{
-            if (e) printe(e);
-            else {
-                plot_images(res);
-                let n = ask(`Delete > `);
-                let img = res[n];
-                g.delete_image(img,(e,res)=>{
-                    if (e) printe(e);
-                    else { g.image_list((e,res)=>{ if (e) printe(e); else { plot_images(res); } }); }
-                });
-            }
-        });
-    } else if (f == 'image_list_on_instance') { //@FUNC@ {"description":"Implementing.","administrator":true}
+    } else if (f == 'image_list_on_instance') { //@FUNC@ {"description":"Implementing.","administrator":true, "hide":true}
         g.image_list_on_machine_resource_for_admin(ins,(e,res)=>{
             if (e) printe(e);
             else {
                 plot_images(res);
             }
         });
-    } else if (f == 'distribute_image_for_admin') { //@FUNC@ {"description":"Implementing.","administrator":true}
+    } else if (f == 'distribute_image_for_admin') { //@FUNC@ {"description":"Implementing.","administrator":true, "hide":true}
         g.distribute_image_for_admin(ins,(e,res)=>{
             if (e) printe(e);
             else {
@@ -123,7 +123,7 @@ function do_action(f) {
                 });
             }
         });
-    } else if (f == 'publish_image') { //@FUNC@ {"description":"Implementing.","administrator":true}
+    } else if (f == 'publish_image') { //@FUNC@ {"description":"Implementing.","administrator":true, "hide":true}
         g.image_list((e,res)=>{
             if (e) printe(e);
             else {
@@ -192,38 +192,47 @@ const descriptions = [
   { key: '__________images__________',
   value: { administrator: false, name: '__________images__________' } }, 
   { key: 'images',
-  value: { description: 'Listing default OS images.', name: 'images' } }, 
+  value: { description: 'Listing default OS images.', name: 'images' } },
+  { key: 'registered_images',
+  value:
+   { description: 'Listing all user defined OS images',
+     name: 'registered_images' } },
+  { key: 'create_image',
+  value:
+   { description: 'Adding an user defined OS image',
+     name: 'create_image' } },
+  { key: 'delete_image',
+  value: { description: 'Deleting an OS image.', name: 'delete_image' } },
   { key: 'images_for_admin',
-  value: 
+  value:
    { description: 'Listing default all OS images.',
      administrator: true,
-     name: 'images_for_admin' } }, 
-  { key: 'registered_images',
-  value: { description: '.', name: 'registered_images' } }, 
-  { key: 'create_image',
-  value: { description: 'Implementing.', name: 'create_image' } }, 
+     hide: true,
+     name: 'images_for_admin' } },
   { key: 'create_image_for_admin',
-  value: 
+  value:
    { description: 'Implementing.',
      administrator: true,
-     name: 'create_image_for_admin' } }, 
-  { key: 'delete_image',
-  value: { description: 'Implementing.', name: 'delete_image' } }, 
+     hide: true,
+     name: 'create_image_for_admin' } },
   { key: 'image_list_on_instance',
-  value: 
+  value:
    { description: 'Implementing.',
      administrator: true,
-     name: 'image_list_on_instance' } }, 
+     hide: true,
+     name: 'image_list_on_instance' } },
   { key: 'distribute_image_for_admin',
-  value: 
+  value:
    { description: 'Implementing.',
      administrator: true,
-     name: 'distribute_image_for_admin' } }, 
+     hide: true,
+     name: 'distribute_image_for_admin' } },
   { key: 'publish_image',
-  value: 
+  value:
    { description: 'Implementing.',
      administrator: true,
-     name: 'publish_image' } }, 
+     hide: true,
+     name: 'publish_image' } },
 ];
 /* @@ DESCRPTIONS @@ END */
 
@@ -233,4 +242,3 @@ module.exports = {
     do_action:do_action,
     descriptions:descriptions
 }
-

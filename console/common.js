@@ -36,10 +36,9 @@ function display_help() {
 	print(`  `)
 	let actions = action_list();
 	print(``);
-    print(actions);
 	for (let k in actions) {
         let v = actions[k];
-		if (GPUEATER_ADMINISTRATOR || v.administrator == false) {
+		if (GPUEATER_ADMINISTRATOR || (!v.administrator)) {
 			if (v.name.indexOf("____")==0) {
 				print(` ${PR(v.index != null?v.index:"",2)}   ${PR(v.name,30)}`);
 			} else {
@@ -410,183 +409,33 @@ function tunnel(params){
 
 var actions = [];
 function action_list() {
-    {
-        let funcs = [];
-        let index = 0;
-        for (let k in actions) {
-            let obj = actions[k];
-            for (let k in obj.descriptions) {
-                let f = obj.descriptions[k].value;
-                if (GPUEATER_ADMINISTRATOR || f.administrator == false) {
-                    if (f.name.indexOf("_")==0) {
-                        // print("");
-                        // print(` ${PR("  ",2)}   ${PL(f.name,30)}   ${f.description}`);
-                    } else {
-                        if (GPUEATER_ADMINISTRATOR || !f.hide) {
-                            //print(` ${PR(index,2)} : ${PL(f.name,30)} : ${f.description}`);
-                            f.index = index;
-                            f.visible = true;
-                            index++;
-                        }
+    let funcs = [];
+    let index = 0;
+    for (let k in actions) {
+        let obj = actions[k];
+        for (let k in obj.descriptions) {
+            let f = obj.descriptions[k].value;
+            let should_add = false;
+            if (GPUEATER_ADMINISTRATOR || (!v.administrator)) {
+                if (f.name.indexOf("_")==0) {
+                    // print("");
+                    // print(` ${PR("  ",2)}   ${PL(f.name,30)}   ${f.description}`);
+                    should_add = true;
+                } else {
+                    if (GPUEATER_ADMINISTRATOR || (!f.hide)) {
+                        //print(` ${PR(index,2)} : ${PL(f.name,30)} : ${f.description}`);
+                        f.index = index;
+                        f.visible = true;
+                        index++;
+                        should_add = true;
                     }
                 }
-                funcs.push(f);
             }
+            if (should_add) funcs.push(f);
         }
-
-        return funcs;
-
     }
 
-
-    return;
-
-
-	let funcs = [];
-	if (require.main === module && false) {
-		let lines = fs.readFileSync(__filename).toString().split("\n");
-		for (let line of lines) {
-			if (line.indexOf("f == ")>=0) {
-				if (line.indexOf("else if") >= 0) {
-					let j = {description:"",administrator:false};
-					try{j=Object.assign(j,JSON.parse(line.split("//")[1]));}catch(e){}
-					let obj = {
-						name:line.split("'")[1],
-						description:j.description,
-						administrator:j.administrator,
-						hide:j.hide
-					};
-					funcs.push(obj);
-				}
-			}
-		}
-		{
-			let s = "";
-			let g_add = true;
-			for (let line of lines) {
-				let add = true;
-				if (line.indexOf("@@ACTIONS@@")>=0) {
-					if (line.indexOf("@@START@@")>=0) {
-						s += "		/* @@ACTIONS@@ ";
-						s += "@@START@@ */\n";
-						s += "		funcs=[\n";
-						for (let f of funcs) {
-							s += `			{name:'${f.name}',description:'${f.description}',administrator:${f.administrator},hide:${f.hide}},\n`;
-						}
-						s += "		];\n";
-						//let ss = "funcs='"+JSON.stringify(funcs)+"';\n";
-						//s += ss.split("\n").join() + "\n";
-						add = false;
-						g_add = false;
-					} else if (line.indexOf("@@END@@")>=0) {
-						s += "		/* @@ACTIONS@@ ";
-						s += "@@END@@ */\n";
-						add = false;
-						g_add = true;
-					}
-				}
-				if (add && g_add) s += line+"\n";
-			}
-			lines = s.split("\n");
-			let ns = [];
-
-			for (let line of lines) {
-				if (line.indexOf("/*@@VERSION_START@@*/") >= 0) {
-					if (line.indexOf("/*@@VERSION_END@@*/") >= 0) {
-						let nline = "			/*@@VERSION_START@@*/";
-						nline += `print("${new Date().full_time()}")`;
-						nline += "/*@@VERSION_END@@*/";
-						ns.push(nline);
-						continue;
-					}
-				}
-				ns.push(line);
-			}
-			fs.writeFileSync(__filename,ns.join("\n"));
-		}
-	} else {
-		/* @@ACTIONS@@ @@START@@ */
-		funcs=[
-			{name:'__________images__________',description:'',administrator:false,hide:undefined},
-			{name:'images',description:'Listing default OS images.',administrator:false,hide:undefined},
-			{name:'images_for_admin',description:'Listing default all OS images.',administrator:true,hide:undefined},
-			{name:'registered_images',description:'.',administrator:false,hide:undefined},
-			{name:'create_image',description:'Implementing.',administrator:false,hide:undefined},
-			{name:'create_image_for_admin',description:'Implementing.',administrator:true,hide:undefined},
-			{name:'delete_image',description:'Implementing.',administrator:false,hide:undefined},
-			{name:'image_list_on_instance',description:'Implementing.',administrator:true,hide:undefined},
-			{name:'distribute_image_for_admin',description:'Implementing.',administrator:true,hide:undefined},
-			{name:'publish_image',description:'Implementing.',administrator:true,hide:undefined},
-			{name:'__________ssh_key__________',description:'',administrator:false,hide:undefined},
-			{name:'ssh_keys',description:'Listing registered SSH keys.',administrator:false,hide:undefined},
-			{name:'generate_ssh_key',description:'Just generate RSA key. You have to register after this.',administrator:false,hide:undefined},
-			{name:'register_ssh_key',description:'Register ssh key.',administrator:false,hide:undefined},
-			{name:'delete_ssh_key',description:'Delete a registered ssh key.',administrator:false,hide:undefined},
-			{name:'__________instance__________',description:'',administrator:false,hide:undefined},
-			{name:'products',description:'Listing on-demand products.',administrator:false,hide:undefined},
-			{name:'instances',description:'Listing launched on-demand instances.',administrator:false,hide:undefined},
-			{name:'subscription_list',description:'This API will be implemented on v2.0.',administrator:true,hide:true},
-			{name:'launch_subcription_instance',description:'This API will be implemented on v2.0.',administrator:true,hide:true},
-			{name:'change_instance_tag',description:'Change instance tag.',administrator:false,hide:undefined},
-			{name:'launch',description:'Launch an on-demand instance.',administrator:false,hide:undefined},
-			{name:'terminate',description:'Terminate an instance.',administrator:false,hide:undefined},
-			{name:'start',description:'Start an instance.',administrator:false,hide:undefined},
-			{name:'stop',description:'Stop an instance.',administrator:false,hide:undefined},
-			{name:'restart',description:'Restart an instance.',administrator:false,hide:undefined},
-			{name:'emergency_restart_instance',description:'Force restart an instance.',administrator:false,hide:undefined},
-			{name:'__________network__________',description:'',administrator:false,hide:undefined},
-			{name:'port_list',description:'Listing port maps of instance.',administrator:false,hide:undefined},
-			{name:'open_port',description:'Register port map.',administrator:false,hide:undefined},
-			{name:'close_port',description:'Delete port map.',administrator:false,hide:undefined},
-			{name:'network_description',description:'Get a network information of instance.',administrator:false,hide:undefined},
-			{name:'renew_ipv4',description:'Assign a new IPv4.',administrator:false,hide:undefined},
-			{name:'refresh_ipv4',description:'Refresh IPv4 map of instance.',administrator:false,hide:undefined},
-			{name:'__________administrator__________',description:'',administrator:true,hide:undefined},
-			{name:'compute_nodes',description:'Listing only computing nodes.',administrator:true,hide:undefined},
-			{name:'proxy_nodes',description:'Listing only proxy nodes.',administrator:true,hide:undefined},
-			{name:'front_nodes',description:'Listing only front nodes.',administrator:true,hide:undefined},
-			{name:'nodes',description:'Listing all nodes.',administrator:true,hide:undefined},
-			{name:'instances_for_admin',description:'Listing all instances.',administrator:true,hide:undefined},
-			{name:'products_for_admin',description:'Listing all on-demand products.',administrator:true,hide:undefined},
-			{name:'launch_as_admin',description:'Force launch an instance.',administrator:true,hide:undefined},
-			{name:'login_node',description:'Login to machine resource.',administrator:true,hide:undefined},
-			{name:'login_multi_node',description:'Multiple login to machine resources.',administrator:true,hide:undefined},
-			{name:'__________payment__________',description:'',administrator:false,hide:undefined},
-			{name:'invoices',description:'Listing invoices.',administrator:false,hide:undefined},
-			{name:'__________extensions__________',description:'',administrator:false,hide:undefined},
-			{name:'login',description:'Login to instance.',administrator:false,hide:undefined},
-			{name:'get',description:'Get a file from host.',administrator:false,hide:undefined},
-			{name:'put',description:'Put a file to host.',administrator:false,hide:undefined},
-			{name:'cmd',description:'Do any command on instance.',administrator:false,hide:undefined},
-			{name:'ls',description:'File list on remote.',administrator:false,hide:undefined},
-			{name:'sync',description:'Synchronize files via rsync.',administrator:false,hide:undefined},
-			{name:'tunnel',description:'Port forwarding local to remote.',administrator:false,hide:undefined},
-			{name:'jupyter',description:'Start jupyter and port forward.',administrator:false,hide:undefined},
-			{name:'version',description:'Version of client.',administrator:false,hide:undefined},
-			{name:'help',description:'Display help.',administrator:false,hide:undefined},
-			{name:'upgrade',description:'Upgrade API self.',administrator:false,hide:undefined},
-		];
-		/* @@ACTIONS@@ @@END@@ */
-	}
-	let index = 0;
-	for (let k in funcs) {
-		let f = funcs[k];
-		if (GPUEATER_ADMINISTRATOR || f.administrator == false) {
-			if (f.name.indexOf("_")==0) {
-				// print("");
-				// print(` ${PR("  ",2)}   ${PL(f.name,30)}   ${f.description}`);
-			} else {
-				if (GPUEATER_ADMINISTRATOR || !f.hide) {
-					//print(` ${PR(index,2)} : ${PL(f.name,30)} : ${f.description}`);
-					f.index = index;
-					f.visible = true;
-					index++;
-				}
-			}
-		}
-	}
-
-	return funcs;
+    return funcs;
 }
 
 function node_login(node_type,node_type_display) {

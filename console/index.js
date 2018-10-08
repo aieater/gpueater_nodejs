@@ -67,20 +67,6 @@ function main(f) {
 			print(``);
 			main(action.name);
 		}
-		return;
-
-		if (f  == 'dummy') {
-
-
-
-		} else {
-			print(``);
-			print(`Invalid action => ${f}`);
-			print(``);
-			setTimeout(()=>{
-				display_help();
-			},1000);
-		}
 	} else {
 		display_help();
 		let actions = action_list();
