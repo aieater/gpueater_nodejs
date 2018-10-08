@@ -635,7 +635,6 @@ var test_extention = function() {
 		let ins = s[0];
 		ins.src = "~/logo.png";
 		delete_file(ins,(e,s)=>{dir([e,s])});
-
 		login_instance(ins,(e,s)=>{dir([e,s])});
 	});
 }
