@@ -1,4 +1,4 @@
-
+./compile.sh
 if [ -e gpueater_Darwin ]; then
 
 scp gpueater_Darwin ins:~/80/gpueater/

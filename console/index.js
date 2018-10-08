@@ -12,6 +12,7 @@ const fs = require('fs');
 const os = require('os');
 const execSync = require('child_process').execSync;
 const exec = require('child_process').exec;
+const spawn = require('child_process').spawn;
 const net = require('net');
 
 const path = require('path');
@@ -19,6 +20,8 @@ const HOME = os.homedir();
 const TMP = os.tmpdir();
 const readlineSync = require('readline-sync');
 const GPUEATER_ADMINISTRATOR = process.env.GPUEATER_ADMINISTRATOR;
+
+const request = require('request');
 
 const g = require('./gpueater');
 
@@ -127,7 +130,13 @@ function plot_images(datas, display = true) {
 	for (let k in datas) {
 		let v = datas[k];
 		ret.push(v);
-		v.view = ` ${index++}: ${v.name}`;
+		if (v.user_defined) {
+			//fingerprint,name,alias,description,volume,created_at,status,progress,error_description
+			function none(s){return s?s:"-";}
+			v.view = ` ${index++}: ${PL(v.name,20)} : ${PL(v.status,10)} : ${PL(v.created_at,10)} : ${PL(none(v.progress),10)} : ${PL(none(v.error_description),20)}`;
+		} else {
+			v.view = ` ${index++}: ${PL(v.name,50)}`;
+		}
 		if (display) print(v.view);
 	}
 	return ret;
@@ -320,7 +329,7 @@ function ssh2_console(params) {
 	    conn.shell(function(err, stream) {
 	      if (err) throw err;
 	      stream.on('close', function() {
-	        console.log('Stream :: close');
+	        util.print('Stream :: close\n');
 	        conn.end();
 	        process.exit(1);
 	      }).on('data', function(data) {
@@ -331,7 +340,7 @@ function ssh2_console(params) {
 	        if (gs._writableState.sync == false) process.stdout.write(''+data);
 			if (params.on_data) { params.on_data(''+data); }
 	      }).stderr.on('data', function(data) {
-	        console.log('STDERR: ' + data);
+	        util.print('STDERR: ' + data);
 	        process.exit(1);
 	    });
 	  });
@@ -348,10 +357,12 @@ function ssh2_console(params) {
 	stdin.resume();
 	stdin.setEncoding( 'utf8' );
 	stdin.on( 'data', function( key ) {
-	  // if ( key === '\u0003' ) {
-	  //   process.exit();
-	  // }
-	  if (gs) gs.write('' + key); 
+		if (params.exit_key) {
+	  	  if ( key === params.exit_key ) {
+	  	    process.exit();
+	  	  }
+		} 
+		if (gs) gs.write('' + key); 
 	});
 }
 
@@ -515,6 +526,8 @@ function action_list() {
 			{name:'launch_as_admin',description:'Force launch an instance.',administrator:true,hide:undefined},
 			{name:'login_node',description:'Login to machine resource.',administrator:true,hide:undefined},
 			{name:'login_multi_node',description:'Multiple login to machine resources.',administrator:true,hide:undefined},
+			{name:'__________payment__________',description:'',administrator:false,hide:undefined},
+			{name:'invoices',description:'Listing invoices.',administrator:false,hide:undefined},
 			{name:'__________extensions__________',description:'',administrator:false,hide:undefined},
 			{name:'login',description:'Login to instance.',administrator:false,hide:undefined},
 			{name:'get',description:'Get a file from host.',administrator:false,hide:undefined},
@@ -526,6 +539,7 @@ function action_list() {
 			{name:'jupyter',description:'Start jupyter and port forward.',administrator:false,hide:undefined},
 			{name:'version',description:'Version of client.',administrator:false,hide:undefined},
 			{name:'help',description:'Display help.',administrator:false,hide:undefined},
+			{name:'upgrade',description:'Upgrade API self.',administrator:false,hide:undefined},
 		];
 		/* @@ACTIONS@@ @@END@@ */
 	}
@@ -594,12 +608,9 @@ function main(f) {
 				else { plot_images(res); }
 			});
 		} else if (f == 'create_image') { // {"description":"Implementing."}
-			instance_list((e,res)=>{
+			select_instance_auto((e,ins)=>{
 				if (e) printe(e);
 				else {
-					let n = ask(`Source instance > `);
-					let ins = res[n];
-					if (!ins) { printe(` Error: "Invalid number" => "${n}"`);process.exit(9); }
 					ins.image_name = ask(`Image name > `);
 					g.create_image(ins,(e,res)=>{
 						if (e) printe(e);
@@ -996,51 +1007,67 @@ function main(f) {
 				selected(p);
 				print(``)
 				print(``)
-				display(`Images`,res.image_list);
-				print(``)
-				n = ask(`Image > `);
-				let img = res.image_list[n];
-				if (!img) { printe(` Error: "Invalid image number" => "${n}"`);process.exit(9); }
-				print(``)
-				selected(img);
-				print(``)
-				print(``)
-			
-				display(`SSH Keys`,res.ssh_key_list);
-				print(``)
-				n = ask(`SSH Key > `);
-				let ssh_key = res.ssh_key_list[n];
-				if (!ssh_key) { printe(` Error: "Invalid ssh key number" => "${n}"`);process.exit(9); }
-				print(``)
-				selected(ssh_key);
-				print(``)
-				print(``)
-				let tag = ask(`Tag > `);
-				print(``)
-				print(`Launching...`)
-				let tm = setInterval(()=>{print(".")},5000);
-				g.launch_as_admin({product_id:p.id,image:img.alias,ssh_key_id:ssh_key.id,tag:tag},(e,res)=>{
-					if (e) { printe(e); }
-					else { print(res); }
-					clearInterval(tm);
-				});
-			
-			});
-		} else if (f == 'login_node') { // {"description":"Login to machine resource.","administrator":true}
-			instance_list((e,res)=>{
-				if (e) printe(e);
-				else {
-					if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
+				
+				g.machine_resource_list_for_admin((e,res2)=>{
+					let index = 0;
+					let clist = [];
+					for (let k in res2) {
+						let m = res2[k];
+						if (m.node_type == 1) {
+							let alive = m.elapsed_time > 60 ? 'DEAD' : 'ALIVE';
+							if (m.from_mq) {
+								let dv = (m.from_mq.device_info && m.from_mq.device_info.devices[0] && m.from_mq.device_info.devices[0].name) ? m.from_mq.device_info.devices[0].name : "CPU";
+								print(`${PR(index++,2)} : ${PL(alive,5)} : ${PR(m.server_label,22)} : ${dv}`);
+								clist.push(m);
+							}
+						}
+					}
+					n = ask(`MachineResource > `);
+					let target = clist[n];
+					if (!target) for (let v of clist) { if (v.server_label == n) {target = v;break;} }
+					if (!target) { printe(` Error: "Invalid number" => "${n}"`);process.exit(9); }
+					print(``);
+					print(`${target.server_label} => ${target.unique_id}`)
 					
-					let n = ask(`Login > `);
-					let ins = res[n];
-					if (!ins) for (let v of res) { if (v.tag == n) { ins = v;break;}}
-					// execSync(ins.ssh_command);
-					ssh2_console({privateKey:path.join(HOME,'.ssh',`${ins.ssh_key_file_name}.pem`),port:ins.sshd_port,user:ins.sshd_user,host:ins.ipv4});
-				}
+				
+				
+					print(``)
+					print(``)
+					display(`Images`,res.image_list);
+					print(``)
+					n = ask(`Image > `);
+					let img = res.image_list[n];
+					if (!img) { printe(` Error: "Invalid image number" => "${n}"`);process.exit(9); }
+					print(``)
+					selected(img);
+					print(``)
+					print(``)
+			
+					display(`SSH Keys`,res.ssh_key_list);
+					print(``)
+					n = ask(`SSH Key > `);
+					let ssh_key = res.ssh_key_list[n];
+					if (!ssh_key) { printe(` Error: "Invalid ssh key number" => "${n}"`);process.exit(9); }
+					print(``)
+					selected(ssh_key);
+					print(``)
+					print(``)
+					let tag = ask(`Tag > `);
+					print(``)
+					print(`Launching...`)
+					let tm = setInterval(()=>{print(".")},5000);
+					g.launch_as_admin({machine_resource_id:target.unique_id,product_id:p.id,image:img.alias,ssh_key_id:ssh_key.id,tag:tag},(e,res)=>{
+						if (e) { printe(e); }
+						else { print(res); }
+						clearInterval(tm);
+					});
+				});
+				
+				
+			
 			});
 		} else if (f == 'login_multi_node') {  // {"description":"Multiple login to machine resources.","administrator":true}
-			machine_resource_list_for_admin((e,s)=>{
+			g.machine_resource_list_for_admin((e,s)=>{
 				print(``);
 				let ntypes = {'0':'front','1':'compute','3':'proxy','9':'all'};
 				for (let k in ntypes) { print(`${k} : ${ntypes[k]}`); }
@@ -1243,12 +1270,93 @@ function main(f) {
 						}
 					}
 				};
+				param.exit_key = '\u0003';
 				ssh2_console(param);
 			});
+		} else if (f == 'jupyter_as_admin') { // {"description":"Start jupyter and port forward.","administrator":true}
+			
+			g.machine_resource_list_for_admin((e,res)=>{
+				if (e) printe(e);
+				else {
+					if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);} 
+					
+					let index = 0;
+					let clist = [];
+					let node_type_display = 1;
+					for (let k in res) {
+						let m = res[k];
+						if (m.node_type == 1) {
+							let alive = m.elapsed_time > 60 ? 'DEAD' : 'ALIVE';
+							print(`${PR(index++,2)} : ${node_type_display} : ${PL(alive,5)} : ${PR(m.server_label,22)} : ssh ${m.sshd_user}@${m.network_ipv6?m.network_ipv6:m.network_ipv4} -p ${m.sshd_port} -i ~/.ssh/brain_master_key.pem -o ServerAliveInterval=10`);
+							clist.push(m);
+						}
+					}
+					
+			
+					let arg = argv.shift();
+					let n = null;
+					let ins = null;
+					if (arg) {
+						for (let k in clist) {
+							if (clist[k].tag == arg) { ins = clist[k];break;}
+						}
+					} else {
+						if (argv.length == 0 && clist.length == 1) {
+							ins = clist[0];
+						} else {
+							n = ask(`Select instance > `);
+							ins = clist[n];
+						}
+					}
+					if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+					
+					let mm = ins;
+					let param = {privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4};
+					param.initial_command = "jupyter notebook --allow-root\n";
+					let buf = "";
+					print(`ssh ${param.user}@${param.host} -p ${param.port} -i "${param.privateKey}" -o ServerAliveInterval=10`);
+					
+					param.on_data = (data)=>{
+						buf += data;
+						let sp = buf.split("\n");
+						buf = sp.pop();
+						for (let k in sp) {
+							let line = sp[k];
+							if (line.indexOf("http://localhost:")>=0) {
+								let port = line.split("http://localhost:")[1].split("/")[0];
+								param.tunnel_port = 8888;
+								param.on_opened = ()=>{ execSync(`open ${line}`) };
+								tunnel(param);
+								break;
+							}
+						}
+					};
+					param.exit_key = '\u0003';
+					ssh2_console(param);
+				}
+			});
+			
 		} else if (f == 'version') { // {"description":"Version of client."}
-			/*@@VERSION_START@@*/print("07/25/2018 21:08")/*@@VERSION_END@@*/
+			/*@@VERSION_START@@*/print("07/27/2018 20:59")/*@@VERSION_END@@*/
 		} else if (f == 'help') { // {"description":"Display help."}
 			display_help();
+		} else if (f == 'upgrade') { // {"description":"Upgrade API self."}
+			request('http://install.aieater.com/setup_gpueater_client', function (e, res, body) {
+				if (e) { printe(e); process.exit(9);}
+				else {
+					let script = path.join(TMP,"setup_gpueater_client");
+					fs.writeFileSync(script,body)
+					
+					let p1 = spawn('bash', [script]);
+					p1.stdout.on('data', (d) => {
+						util.print(d.toString());
+					});
+					p1.stderr.on('data', (d) => {
+						util.print(d.toString())
+					});
+				}
+			});
+
 		} else {
 			print(``);
 			print(`Invalid action => ${f}`);
@@ -1276,6 +1384,8 @@ function main(f) {
 
 
 main(f);
+
+
 
 
 

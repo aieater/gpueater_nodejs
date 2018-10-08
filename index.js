@@ -286,9 +286,9 @@ function snapshot_instance(form,func) { func_post("/console/servers/snapshot_ins
 function delete_snapshot(form,func) { func_post("/console/servers/delete_snapshot",(e,res)=>{func(e,res)}, ["snapshot_id"], form); }
 function snapshot_list(form,func) { func_get("/console/servers/snapshot_list",(e,res)=>{func(e,res)}, ["instance_id"], form); }
 function restore_from_snapshot(form,func) { func_post("/console/servers/restore_from_snapshot",(e,res)=>{func(e,res)}, ["instance_id","snapshot_id"], form); }
-function create_image(form,func) { func_post("/console/servers/create_image",(e,res)=>{func(e,res)}, ["instance_id","image_name"], form); }
+function create_image(form,func) { func_post("/console/servers/create_user_defined_image",(e,res)=>{func(e,res)}, ["instance_id","image_name"], form); }
 function register_image(form,func) { func_post("/console/servers/register_image",(e,res)=>{func(e,res)}, ["url","image_name"], form); }
-function delete_image(form,func) { func_post("/console/servers/delete_image",(e,res)=>{func(e,res)}, ["image_id"], form); }
+function delete_image(form,func) { func_post("/console/servers/delete_user_defined_image",(e,res)=>{func(e,res)}, ["fingerprint"], form); }
 var test_image = function() {
 	image_list((e,s)=>{dir([e,s])});
 }
