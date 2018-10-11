@@ -99,15 +99,15 @@ Product > 2
  Selected => "2: a1.vegafe  InStock(OK) CPU( 4)  MEM(15360)MB  SSD( 120)GB  $0.6164/h  Radeon Vega Frontier Edition (16G)"
 
 
------------------------------------------------------
- ---- Images ----
- 0: AMD-ROCm1.8.118+TensorFlow1.3 Ubuntu16.04 x64
- 1: AMD-ROCm1.8.192+TensorFlow1.8 Ubuntu16.04 x64
- 2: CentOS6 x64
- 3: CentOS7 x64
- 4: NVIDIA-390+CUDA9.0 Ubuntu16.04 x64
- 5: Ubuntu16.04 x64
- 6: Ubuntu18.04 x64
+ -----------------------------------------------------
+  ---- Images ----
+  0: AMD-ROCm1.9.224+TensorFlow1.10 Ubuntu16.04 x64    
+  1: AMD-ROCm1.9.224+TensorFlow1.8 Ubuntu16.04 x64     
+  2: CentOS6 x64                                       
+  3: CentOS7 x64                                       
+  4: NVIDIA-410.48+CUDA9.0 Ubuntu16.04 x64             
+  5: Ubuntu16.04 x64                                   
+  6: Ubuntu18.04 x64
 
 Image > 0
 
@@ -317,7 +317,7 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 |  v0.8  |  instances  |  Listing all launched instances |
 |  v1.0  |  change_instance_tag |  Changing an instance tag |
 |  v1.0  |  start  |  Starting an instance. If the instance is already RUNNING, nothing is going to happen |
-|  v1.0  |  ~~stop~~[Deprecated] |  ~~ Stopping an instance. If the instance is already STOPPED, nothing is going to happen ~~ |
+|  v1.0  |  ~~stop~~[Deprecated] |  ~~Stopping an instance. If the instance is already STOPPED, nothing is going to happen~~ |
 |  v1.0  |  restart  |  Restarting an instance |
 |  v0.8  |  terminate  |  Terminating an instance |
 |  v1.0  |  emergency_restart_instance |  Restarting an instance emergently when an instance is hung up |

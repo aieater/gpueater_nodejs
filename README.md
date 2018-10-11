@@ -212,12 +212,12 @@ g.image_list((error,res)=>{
 |  Version  |  Function  | Required | Description  |
 | ---- | ---- | ---- | ---- |
 |  v0.8  |  image_list()  |  | Listing all OS images |
-|  v1.7  |  snapshot_instance(form)  | instance_id, machine_resource_id |  Creating a snapshot |
-|  v1.7  |  delete_snapshot(form)  | instance_id, machine_resource_id |  Deleting a snapshot |
 |  v1.5  |  registered_image_list()  |  | Listing all user defined OS images |
 |  v1.5  |  create_image(form)  | instance_id, machine_resource_id |  Adding an user defined OS image |
-|  v2.0  |  import_image(form)  | url |  Registering an user defined OS image on the internet |
 |  v1.5  |  delete_image(form)  | image |  Deleting an OS image |
+|  v2.0  |  snapshot_instance(form)  | instance_id, machine_resource_id |  Creating a snapshot |
+|  v2.0  |  delete_snapshot(form)  | instance_id, machine_resource_id |  Deleting a snapshot |
+|  v2.5  |  import_image(form)  | url |  Registering an user defined OS image on the internet |
 
 
 ##### SSH Key
@@ -303,7 +303,7 @@ g.instance_list((error,res)=>{
 |  v2.0  |  create_volume(form)  | size |  Creating an extended volume |
 |  v2.0  |  attach_volume(form)  | volume_id, instance_id |  Attaching an extended volume to an instance |
 |  v2.0  |  delete_volume(form)  | volume_id |  Deleting an extended volume |
-|  v2.0  |  transfer_volume(form)  | volume_id,region_id |  Transfering an extended volume to another region |
+|  v2.0  |  transfer_volume(form)  | volume_id, region_id |  Transferring an extended volume to another region |
 
 ##### Subscription
 |  Version  |  Function  | Required | Description  |
@@ -330,23 +330,18 @@ g.instance_list((error,res)=>{
 | ---- | ---- | ---- | ---- |
 |  v1.0  |  invoice_list(func)  |  |  Listing invoices for on-demand instances |
 |  v2.0  |  subscription_invoice_list(func)  |  |  Listing invoices for subscription instances |
-|  v1.5  |  make_invoice(form, func)  | invoice_id |  Obtain a pdf invoice |
+|  v2.5  |  make_invoice(form, func)  | invoice_id |  Obtain a pdf invoice |
 
 ##### Extensions
 |  Version  |  Function  | Required | Description  |
 | ---- | ---- | ---- | ---- |
-|  v1.2  |  copy_file(form, func)  | action("get"or"put"), src, dst |  Copying a file. "get" obtains a file from a remote host to your local host, and "put" is the opposite. "src" is a source file path, and "dst" is a destination file path |
-|  v1.2  |  delete_file(form, func)  | src, recursive |  Deleting a remote file |
-|  v1.2  |  make_directory(form, func)  | dst |  Making a directory in a remote host |
-|  v1.2  |  file_list(form, func)  | src |  Listing all files in a remote host |
-|  v1.2  |  synchronize_files(form, func)  | action, src, dst |  This API is similar to the "rsync" |
-|  v1.2  |  login_instance(form, func)  | instance_id | Logging in a specific instance through the SSH |
-|  v1.2  |  tunnel(form, func)  | instance_id, port |  This API enables a port tunneling between your local and a remote host |
-
-##### Class API
-|  Version  |  Function  | Required | Description  |
-| ---- | ---- | ---- | ---- |
-|  v1.2  |  api_list()  |  |  Listing all available APIs. |
+|  v1.7  |  copy_file(form, func)  | action("get"or"put"), src, dst |  Copying a file. "get" obtains a file from a remote host to your local host, and "put" is the opposite. "src" is a source file path, and "dst" is a destination file path |
+|  v1.7  |  delete_file(form, func)  | src, recursive |  Deleting a remote file |
+|  v1.7  |  make_directory(form, func)  | dst |  Making a directory in a remote host |
+|  v1.7  |  file_list(form, func)  | src |  Listing all files in a remote host |
+|  v1.7  |  synchronize_files(form, func)  | action, src, dst |  This API is similar to the "rsync" |
+|  v1.7  |  login_instance(form, func)  | instance_id | Logging in a specific instance through the SSH |
+|  v1.7  |  tunnel(form, func)  | instance_id, port |  This API enables a port tunneling between your local and a remote host |
 
 
 ## License
