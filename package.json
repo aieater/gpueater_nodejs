@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aieater/gpueater.git"
+    "url": "git+https://github.com/aieater/gpueater_nodejs.git"
   },
   "keywords": [
     "deeplearning",
@@ -21,9 +21,9 @@
   "author": "Pegara, Inc. <info@pegara.com> (https://www.gpueater.com/)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/aieater/gpueater/issues"
+    "url": "https://github.com/aieater/gpueater_nodejs/issues"
   },
-  "homepage": "https://github.com/aieater/gpueater#readme",
+  "homepage": "https://github.com/aieater/gpueater_nodejs#readme",
   "dependencies": {
     "async": "^2.6.1",
     "request": "^2.87.0",
