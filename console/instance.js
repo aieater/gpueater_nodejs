@@ -33,7 +33,7 @@ for (let k in common) { let v = common[k]; eval(`${k}=${v}`); }
 
 function do_action(f) {
     if (f=="dummy") {
-    } else if (f == '__________instance__________') { //@FUNC@ {}
+    } else if (f == '___________instance___________') { //@FUNC@ {}
     } else if (f == 'products') { //@FUNC@ {"description":"Listing on-demand products."}
         display_ondemand_list();
     } else if (f == 'instances') { //@FUNC@ {"description":"Listing launched on-demand instances."}
@@ -195,42 +195,42 @@ if (require.main === module) {
 
 /* @@ DESCRPTIONS @@ START */
 const descriptions = [
-  { key: '__________instance__________',
-  value: { name: '__________instance__________' } },
+  { key: '___________instance___________',
+  value: { name: '___________instance___________' } }, 
   { key: 'products',
-  value: { description: 'Listing on-demand products.', name: 'products' } },
+  value: { description: 'Listing on-demand products.', name: 'products' } }, 
   { key: 'instances',
-  value:
+  value: 
    { description: 'Listing launched on-demand instances.',
-     name: 'instances' } },
+     name: 'instances' } }, 
   { key: 'subscription_list',
-  value:
+  value: 
    { description: 'This API will be implemented on v2.0.',
      hide: true,
      administrator: true,
-     name: 'subscription_list' } },
+     name: 'subscription_list' } }, 
   { key: 'launch_subcription_instance',
-  value:
+  value: 
    { description: 'This API will be implemented on v2.0.',
      hide: true,
      administrator: true,
-     name: 'launch_subcription_instance' } },
+     name: 'launch_subcription_instance' } }, 
   { key: 'change_instance_tag',
-  value:
+  value: 
    { description: 'Change instance tag.',
-     name: 'change_instance_tag' } },
+     name: 'change_instance_tag' } }, 
   { key: 'launch',
-  value: { description: 'Launch an on-demand instance.', name: 'launch' } },
+  value: { description: 'Launch an on-demand instance.', name: 'launch' } }, 
   { key: 'terminate',
-  value: { description: 'Terminate an instance.', name: 'terminate' } },
+  value: { description: 'Terminate an instance.', name: 'terminate' } }, 
   { key: 'start',
-  value: { description: 'Start an instance.', name: 'start' } },
+  value: { description: 'Start an instance.', name: 'start' } }, 
   { key: 'restart',
-  value: { description: 'Restart an instance.', name: 'restart' } },
+  value: { description: 'Restart an instance.', name: 'restart' } }, 
   { key: 'emergency_restart_instance',
-  value:
+  value: 
    { description: 'Force restart an instance.',
-     name: 'emergency_restart_instance' } },
+     name: 'emergency_restart_instance' } }, 
 ];
 /* @@ DESCRPTIONS @@ END */
 
@@ -240,3 +240,4 @@ module.exports = {
     do_action:do_action,
     descriptions:descriptions
 }
+

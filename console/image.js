@@ -33,18 +33,18 @@ for (let k in common) { let v = common[k]; eval(`${k}=${v}`); }
 
 function do_action(f) {
     if (f=="dummy") {
-    } else if (f == '__________images__________') {  //@FUNC@ {"administrator":false}
+    } else if (f == '____________image____________') {  //@FUNC@ {"administrator":false}
     } else if (f == 'images') { //@FUNC@ {"description":"Listing default OS images."}
         g.image_list((e,res)=>{
             if (e) printe(e);
             else { plot_images(res); }
         });
-    } else if (f == 'registered_images') { //@FUNC@ {"description":"Listing all user defined OS images"}
+    } else if (f == 'registered_images') { //@FUNC@ {"description":"Listing all user defined OS images."}
         g.registered_image_list((e,res)=>{
             if (e) printe(e);
             else { plot_images(res); }
         });
-    } else if (f == 'create_image') { //@FUNC@ {"description":"Adding an user defined OS image"}
+    } else if (f == 'create_image') { //@FUNC@ {"description":"Adding an user defined OS image."}
         select_instance_auto((e,ins)=>{
             if (e) printe(e);
             else {
@@ -68,74 +68,7 @@ function do_action(f) {
                 });
             }
         });
-    } else if (f == 'images_for_admin') { //@FUNC@ {"description":"Listing default all OS images.","administrator":true, "hide":true}
-        g.image_list_for_admin((e,res)=>{
-            if (e) printe(e);
-            else { plot_images(res); }
-        });
-    } else if (f == 'create_image_for_admin') { //@FUNC@ {"description":"Implementing.","administrator":true, "hide":true}
-        instance_list((e,res)=>{
-            if (e) printe(e);
-            else {
-                let n = ask(`Source instance > `);
-                let ins = res[n];
-                if (!ins) { printe(` Error: "Invalid number" => "${n}"`);process.exit(9); }
-                ins.image_name = ask(`Image name > `);
-                ins.distribute_flag = ask(`Distribute (y/n) > `).toString().toLowerCase() == "y";
-                if (ins.distribute_flag) {
-                    ins.publish_flag = ask(`Publish (y/n) > `).toString().toLowerCase() == "y";
-                } else {
-                    ins.publish_flag = false;
-                }
 
-                print("Creating....")
-                let tm = setInterval(()=>{print(".")},3000);
-                g.create_image_for_admin(ins,(e,res)=>{
-                    clearTimer(tm);
-                    if (e) printe(e);
-                    else { g.image_list((e,res)=>{ if (e) printe(e); else {
-                        plot_images(res);
-                        if (ins.publish_flag) {
-                            print("The published image is stil not completed.")
-                            print("It will take a few hours to done.")
-                        }
-                    } });}
-                });
-            }
-        });
-    } else if (f == 'image_list_on_instance') { //@FUNC@ {"description":"Implementing.","administrator":true, "hide":true}
-        g.image_list_on_machine_resource_for_admin(ins,(e,res)=>{
-            if (e) printe(e);
-            else {
-                plot_images(res);
-            }
-        });
-    } else if (f == 'distribute_image_for_admin') { //@FUNC@ {"description":"Implementing.","administrator":true, "hide":true}
-        g.distribute_image_for_admin(ins,(e,res)=>{
-            if (e) printe(e);
-            else {
-                plot_images(res);
-                let n = ask(`Publish > `);
-                let img = res[n];
-                g.delete_image(img,(e,res)=>{
-                    if (e) printe(e);
-                    else { g.image_list((e,res)=>{ if (e) printe(e); else { plot_images(res); } }); }
-                });
-            }
-        });
-    } else if (f == 'publish_image') { //@FUNC@ {"description":"Implementing.","administrator":true, "hide":true}
-        g.image_list((e,res)=>{
-            if (e) printe(e);
-            else {
-                plot_images(res);
-                let n = ask(`Publish > `);
-                let img = res[n];
-                g.delete_image(img,(e,res)=>{
-                    if (e) printe(e);
-                    else { g.image_list((e,res)=>{ if (e) printe(e); else { plot_images(res); } }); }
-                });
-            }
-        });
     } else {
         return false;
     }
@@ -189,50 +122,20 @@ if (require.main === module) {
 
 /* @@ DESCRPTIONS @@ START */
 const descriptions = [
-  { key: '__________images__________',
-  value: { administrator: false, name: '__________images__________' } }, 
+  { key: '____________image____________',
+  value: { administrator: false, name: '____________image____________' } }, 
   { key: 'images',
-  value: { description: 'Listing default OS images.', name: 'images' } },
+  value: { description: 'Listing default OS images.', name: 'images' } }, 
   { key: 'registered_images',
-  value:
-   { description: 'Listing all user defined OS images',
-     name: 'registered_images' } },
+  value: 
+   { description: 'Listing all user defined OS images.',
+     name: 'registered_images' } }, 
   { key: 'create_image',
-  value:
-   { description: 'Adding an user defined OS image',
-     name: 'create_image' } },
+  value: 
+   { description: 'Adding an user defined OS image.',
+     name: 'create_image' } }, 
   { key: 'delete_image',
-  value: { description: 'Deleting an OS image.', name: 'delete_image' } },
-  { key: 'images_for_admin',
-  value:
-   { description: 'Listing default all OS images.',
-     administrator: true,
-     hide: true,
-     name: 'images_for_admin' } },
-  { key: 'create_image_for_admin',
-  value:
-   { description: 'Implementing.',
-     administrator: true,
-     hide: true,
-     name: 'create_image_for_admin' } },
-  { key: 'image_list_on_instance',
-  value:
-   { description: 'Implementing.',
-     administrator: true,
-     hide: true,
-     name: 'image_list_on_instance' } },
-  { key: 'distribute_image_for_admin',
-  value:
-   { description: 'Implementing.',
-     administrator: true,
-     hide: true,
-     name: 'distribute_image_for_admin' } },
-  { key: 'publish_image',
-  value:
-   { description: 'Implementing.',
-     administrator: true,
-     hide: true,
-     name: 'publish_image' } },
+  value: { description: 'Deleting an OS image.', name: 'delete_image' } }, 
 ];
 /* @@ DESCRPTIONS @@ END */
 
@@ -242,3 +145,4 @@ module.exports = {
     do_action:do_action,
     descriptions:descriptions
 }
+

@@ -205,34 +205,35 @@ johndoe@local:~$
    > gpueater products
 
 
-          __________images__________
-  0 :                         images : Listing default OS images.
-  1 :              registered_images : .
-  2 :                   create_image : Implementing.
-  3 :                   delete_image : Implementing.
-         __________ssh_key__________
-  4 :                       ssh_keys : Listing registered SSH keys.
-  5 :               generate_ssh_key : Just generate RSA key. You have to register after this.
-  6 :               register_ssh_key : Register ssh key.
-  7 :                 delete_ssh_key : Delete a registered ssh key.
-        __________instance__________
+       ___________ssh_key___________
+  0 :                       ssh_keys : Listing registered SSH keys.
+  1 :               generate_ssh_key : Generating Key Pair.
+  2 :               register_ssh_key : Registering an SSH key.
+  3 :                 delete_ssh_key : Deleting an SSH key.
+       ____________image____________
+  4 :                         images : Listing default OS images.
+  5 :              registered_images : Listing all user defined OS images.
+  6 :                   create_image : Adding an user defined OS image.
+  7 :                   delete_image : Deleting an OS image.
+      ___________instance___________
   8 :                       products : Listing on-demand products.
   9 :                      instances : Listing launched on-demand instances.
  10 :            change_instance_tag : Change instance tag.
  11 :                         launch : Launch an on-demand instance.
  12 :                      terminate : Terminate an instance.
  13 :                          start : Start an instance.
- 14 :                           stop : Stop an instance.
- 15 :                        restart : Restart an instance.
- 16 :     emergency_restart_instance : Force restart an instance.
-         __________network__________
- 17 :                      port_list : Listing port maps of instance.
- 18 :                      open_port : Register port map.
- 19 :                     close_port : Delete port map.
- 20 :            network_description : Get a network information of instance.
- 21 :                     renew_ipv4 : Assign a new IPv4.
- 22 :                   refresh_ipv4 : Refresh IPv4 map of instance.
-      __________extensions__________
+ 14 :                        restart : Restart an instance.
+ 15 :     emergency_restart_instance : Force restart an instance.
+       ___________network___________
+ 16 :                      port_list : Listing port maps of instance.
+ 17 :                      open_port : Register port map.
+ 18 :                     close_port : Delete port map.
+ 19 :            network_description : Get a network information of instance.
+ 20 :                     renew_ipv4 : Assign a new IPv4.
+ 21 :                   refresh_ipv4 : Refresh IPv4 map of instance.
+       ___________payment___________
+ 22 :                       invoices : Listing invoices.
+       __________extension__________
  23 :                          login : Login to instance.
  24 :                            get : Get a file from host.
  25 :                            put : Put a file to host.
@@ -243,9 +244,9 @@ johndoe@local:~$
  30 :                        jupyter : Start jupyter and port forward.
  31 :                        version : Version of client.
  32 :                           help : Display help.
+ 33 :                        upgrade : Upgrade API self.
 
  Action >
-
 ```
 
 You can select an action with interactive navigator.
@@ -293,11 +294,11 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 | ---- | ---- | ---- |
 |  v0.8  |  images  | Listing all default OS images |
 |  v1.5  |  registered_images  |  Listing user defined images |
-|  v1.5  |  snapshot_instance  |  Creating a snapshot |
-|  v1.5  |  delete_snapshot  |  Deleting a snapshot |
 |  v1.5  |  create_image  |  Adding an user defined OS image |
-|  v2.0  |  register_image |  Registering an user defined OS image on the internet |
-|  v1.5  |  delete_image  |  Deleting an OS image |
+|  v1.5  |  delete_image  |  Deleting an user defined OS image |
+|  v2.5  |  import_image |  Registering an user defined OS image on the internet |
+|  v2.0  |  snapshot_instance  |  Creating a snapshot |
+|  v2.0  |  delete_snapshot  |  Deleting a snapshot |
 
 
 ##### SSH Key
@@ -316,8 +317,8 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 |  v0.8  |  instances  |  Listing all launched instances |
 |  v1.0  |  change_instance_tag |  Changing an instance tag |
 |  v1.0  |  start  |  Starting an instance. If the instance is already RUNNING, nothing is going to happen |
-|  v1.0  |  stop  |  Stopping an instance. If the instance is already STOPPED, nothing is going to happen |
-|  v1.0  |  restart   |  Restarting an instance |
+|  v1.0  |  ~~stop~~[Deprecated] |  ~~ Stopping an instance. If the instance is already STOPPED, nothing is going to happen ~~ |
+|  v1.0  |  restart  |  Restarting an instance |
 |  v0.8  |  terminate  |  Terminating an instance |
 |  v1.0  |  emergency_restart_instance |  Restarting an instance emergently when an instance is hung up |
 
@@ -365,7 +366,7 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 | ---- | ---- | ---- |
 |  v1.0  |  invoice_list  |  Listing invoices for on-demand instances |
 |  v2.0  |  subscription_invoice_list  |  Listing invoices for subscription instances |
-|  v1.5  |  make_invoice  |  Obtain a pdf invoice |
+|  v2.0  |  make_invoice  |  Obtain a pdf invoice |
 
 ##### Extensions
 |  Version  |  Action | Description  |
@@ -377,8 +378,9 @@ root@C-b3230350-d9ff-4da9-b4b6-dc70691b1f3d-1:~#
 |  v1.2  |  tunnel  |  Port forwarding between local and remote. |
 |  v1.2  |  login  | Logging in a specific instance through the SSH |
 |  v1.2  |  jupyter  | Starting jupyter on remote with tunneling. This API is available on MacOSX. |
+|  v1.0  |  help |  Show help. |
 |  v1.0  |  version |  Display version. |
-|  v1.0  |  help |  Display help. |
+|  v1.2  |  upgrade |  Console API will be upgraded. |
 
 
 ## License

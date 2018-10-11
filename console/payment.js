@@ -33,7 +33,7 @@ for (let k in common) { let v = common[k]; eval(`${k}=${v}`); }
 
 function do_action(f) {
     if (f=="dummy") {
-    } else if (f == '__________payments__________') { //@FUNC@ {}
+    } else if (f == '___________payment___________') { //@FUNC@ {}
     } else if (f == 'invoices') { //@FUNC@ {"description":"Listing invoices."}
         g.invoice_list((e,res)=>{
             if (e) printe(e);
@@ -95,10 +95,10 @@ if (require.main === module) {
 
 /* @@ DESCRPTIONS @@ START */
 const descriptions = [
-  { key: '__________payments__________',
-  value: { name: '__________payments__________' } },
+  { key: '___________payment___________',
+  value: { name: '___________payment___________' } }, 
   { key: 'invoices',
-  value: { description: 'Listing invoices.', name: 'invoices' } },
+  value: { description: 'Listing invoices.', name: 'invoices' } }, 
 ];
 /* @@ DESCRPTIONS @@ END */
 
@@ -108,3 +108,4 @@ module.exports = {
     do_action:do_action,
     descriptions:descriptions
 }
+

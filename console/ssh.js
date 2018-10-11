@@ -33,13 +33,13 @@ for (let k in common) { let v = common[k]; eval(`${k}=${v}`); }
 
 function do_action(f) {
     if (f=="dummy") {
-    } else if (f == '__________ssh_key__________') { //@FUNC@ {}
+    } else if (f == '___________ssh_key___________') { //@FUNC@ {}
     } else if (f == 'ssh_keys') { //@FUNC@ {"description":"Listing registered SSH keys."}
         g.ssh_key_list((e,res)=>{
             if (e) printe(e);
             else { plot_ssh_keys(res); }
         });
-    } else if (f == 'generate_ssh_key') { //@FUNC@ {"description":"Just generate RSA key. You have to register after this."}
+    } else if (f == 'generate_ssh_key') { //@FUNC@ {"description":"Generating Key Pair."}
         g.generate_ssh_key((e,res)=>{
             if (e) printe(e);
             else {
@@ -49,8 +49,8 @@ function do_action(f) {
                 print(res.public_key);
             }
         });
-    } else if (f == 'register_ssh_key') { //@FUNC@ {"description":"Register ssh key."}
-    } else if (f == 'delete_ssh_key') { //@FUNC@ {"description":"Delete a registered ssh key."}
+    } else if (f == 'register_ssh_key') { //@FUNC@ {"description":"Registering an SSH key."}
+    } else if (f == 'delete_ssh_key') { //@FUNC@ {"description":"Deleting an SSH key."}
         g.ssh_key_list((e,res)=>{
             if (e) printe(e);
             else {
@@ -127,22 +127,22 @@ if (require.main === module) {
 
 /* @@ DESCRPTIONS @@ START */
 const descriptions = [
-  { key: '__________ssh_key__________',
-  value: { name: '__________ssh_key__________' } }, 
+  { key: '___________ssh_key___________',
+  value: { name: '___________ssh_key___________' } }, 
   { key: 'ssh_keys',
   value: 
    { description: 'Listing registered SSH keys.',
      name: 'ssh_keys' } }, 
   { key: 'generate_ssh_key',
   value: 
-   { description: 'Just generate RSA key. You have to register after this.',
+   { description: 'Generating Key Pair.',
      name: 'generate_ssh_key' } }, 
   { key: 'register_ssh_key',
-  value: { description: 'Register ssh key.', name: 'register_ssh_key' } }, 
-  { key: 'delete_ssh_key',
   value: 
-   { description: 'Delete a registered ssh key.',
-     name: 'delete_ssh_key' } }, 
+   { description: 'Registering an SSH key.',
+     name: 'register_ssh_key' } }, 
+  { key: 'delete_ssh_key',
+  value: { description: 'Deleting an SSH key.', name: 'delete_ssh_key' } }, 
 ];
 /* @@ DESCRPTIONS @@ END */
 
@@ -152,5 +152,4 @@ module.exports = {
     do_action:do_action,
     descriptions:descriptions
 }
-
 

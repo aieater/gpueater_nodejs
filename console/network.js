@@ -33,7 +33,7 @@ for (let k in common) { let v = common[k]; eval(`${k}=${v}`); }
 
 function do_action(f) {
     if (f=="dummy") {
-    } else if (f == '__________network__________') { //@FUNC@ {}
+    } else if (f == '___________network___________') { //@FUNC@ {}
     } else if (f == 'port_list') { //@FUNC@ {"description":"Listing port maps of instance."}
         select_instance_auto((e,ins)=>{
             g.port_list(ins,(e,res)=>{
@@ -187,8 +187,8 @@ if (require.main === module) {
 
 /* @@ DESCRPTIONS @@ START */
 const descriptions = [
-  { key: '__________network__________',
-  value: { name: '__________network__________' } }, 
+  { key: '___________network___________',
+  value: { name: '___________network___________' } }, 
   { key: 'port_list',
   value: 
    { description: 'Listing port maps of instance.',

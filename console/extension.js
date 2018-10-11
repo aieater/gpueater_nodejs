@@ -33,7 +33,7 @@ for (let k in common) { let v = common[k]; eval(`${k}=${v}`); }
 
 function do_action(f) {
     if (f=="dummy") {
-    } else if (f == '__________extensions__________') { //@FUNC@ {}
+    } else if (f == '__________extension__________') { //@FUNC@ {}
     } else if (f == 'login') { //@FUNC@ {"description":"Login to instance."}
         instance_list((e,res)=>{
             if (e) printe(e);
@@ -194,68 +194,6 @@ function do_action(f) {
             param.exit_key = '\u0003';
             ssh2_console(param);
         });
-    } else if (f == 'jupyter_as_admin') { //@FUNC@ {"description":"Start jupyter and port forward.","administrator":true}
-
-        g.machine_resource_list_for_admin((e,res)=>{
-            if (e) printe(e);
-            else {
-                if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);}
-
-                let index = 0;
-                let clist = [];
-                let node_type_display = 1;
-                for (let k in res) {
-                    let m = res[k];
-                    if (m.node_type == 1) {
-                        let alive = m.elapsed_time > 60 ? 'DEAD' : 'ALIVE';
-                        print(`${PR(index++,2)} : ${node_type_display} : ${PL(alive,5)} : ${PR(m.server_label,22)} : ssh ${m.sshd_user}@${m.network_ipv6?m.network_ipv6:m.network_ipv4} -p ${m.sshd_port} -i ~/.ssh/brain_master_key.pem -o ServerAliveInterval=10`);
-                        clist.push(m);
-                    }
-                }
-
-
-                let arg = argv.shift();
-                let n = null;
-                let ins = null;
-                if (arg) {
-                    for (let k in clist) {
-                        if (clist[k].tag == arg) { ins = clist[k];break;}
-                    }
-                } else {
-                    if (argv.length == 0 && clist.length == 1) {
-                        ins = clist[0];
-                    } else {
-                        n = ask(`Select instance > `);
-                        ins = clist[n];
-                    }
-                }
-                if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
-
-                let mm = ins;
-                let param = {privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4};
-                param.initial_command = "jupyter notebook --allow-root\n";
-                let buf = "";
-                print(`ssh ${param.user}@${param.host} -p ${param.port} -i "${param.privateKey}" -o ServerAliveInterval=10`);
-
-                param.on_data = (data)=>{
-                    buf += data;
-                    let sp = buf.split("\n");
-                    buf = sp.pop();
-                    for (let k in sp) {
-                        let line = sp[k];
-                        if (line.indexOf("http://localhost:")>=0) {
-                            let port = line.split("http://localhost:")[1].split("/")[0];
-                            param.tunnel_port = 8888;
-                            param.on_opened = ()=>{ execSync(`open ${line}`) };
-                            tunnel(param);
-                            break;
-                        }
-                    }
-                };
-                param.exit_key = '\u0003';
-                ssh2_console(param);
-            }
-        });
 
     } else if (f == 'version') { //@FUNC@ {"description":"Version of client."}
         /*@@VERSION_START@@*/print("v1.5")/*@@VERSION_END@@*/
@@ -331,39 +269,34 @@ if (require.main === module) {
 
 /* @@ DESCRPTIONS @@ START */
 const descriptions = [
-  { key: '__________extensions__________',
-  value: { name: '__________extensions__________' } },
+  { key: '__________extension__________',
+  value: { name: '__________extension__________' } }, 
   { key: 'login',
-  value: { description: 'Login to instance.', name: 'login' } },
+  value: { description: 'Login to instance.', name: 'login' } }, 
   { key: 'get',
-  value: { description: 'Get a file from host.', name: 'get' } },
+  value: { description: 'Get a file from host.', name: 'get' } }, 
   { key: 'put',
-  value: { description: 'Put a file to host.', name: 'put' } },
+  value: { description: 'Put a file to host.', name: 'put' } }, 
   { key: 'cmd',
-  value: { description: 'Do any command on instance.', name: 'cmd' } },
+  value: { description: 'Do any command on instance.', name: 'cmd' } }, 
   { key: 'ls',
-  value: { description: 'File list on remote.', name: 'ls' } },
+  value: { description: 'File list on remote.', name: 'ls' } }, 
   { key: 'sync',
-  value: { description: 'Synchronize files via rsync.', name: 'sync' } },
+  value: { description: 'Synchronize files via rsync.', name: 'sync' } }, 
   { key: 'tunnel',
-  value:
+  value: 
    { description: 'Port forwarding local to remote.',
-     name: 'tunnel' } },
+     name: 'tunnel' } }, 
   { key: 'jupyter',
-  value:
+  value: 
    { description: 'Start jupyter and port forward.',
-     name: 'jupyter' } },
-  { key: 'jupyter_as_admin',
-  value:
-   { description: 'Start jupyter and port forward.',
-     administrator: true,
-     name: 'jupyter_as_admin' } },
+     name: 'jupyter' } }, 
   { key: 'version',
-  value: { description: 'Version of client.', name: 'version' } },
+  value: { description: 'Version of client.', name: 'version' } }, 
   { key: 'help',
-  value: { description: 'Display help.', name: 'help' } },
+  value: { description: 'Display help.', name: 'help' } }, 
   { key: 'upgrade',
-  value: { description: 'Upgrade API self.', name: 'upgrade' } },
+  value: { description: 'Upgrade API self.', name: 'upgrade' } }, 
 ];
 /* @@ DESCRPTIONS @@ END */
 
@@ -373,3 +306,4 @@ module.exports = {
     do_action:do_action,
     descriptions:descriptions
 }
+

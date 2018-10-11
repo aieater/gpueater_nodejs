@@ -521,6 +521,7 @@ function assign_network_for_admin(form,func) { func_post("/console/servers/assig
 function create_distribution_image_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
 function distribute_image_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
 function login_nodes_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
+function update_machine_resource_flags(form,func) { func_post("/console/servers/update_machine_resource_for_admin",(e,res)=>{func(e,res)}, [], form); }
 var test_admin = function() {
 	//image_list_for_admin((e,s)=>{dir([e,s])});
 	try { execSync(`cp ~/.ssh/config ~/.ssh/_bk_`); } catch (e) {}
@@ -635,6 +636,7 @@ var test_extention = function() {
 		let ins = s[0];
 		ins.src = "~/logo.png";
 		delete_file(ins,(e,s)=>{dir([e,s])});
+
 		login_instance(ins,(e,s)=>{dir([e,s])});
 	});
 }
@@ -744,6 +746,7 @@ module.exports = {
 	create_distribution_image_for_admin: create_distribution_image_for_admin,
 	distribute_image_for_admin: distribute_image_for_admin,
 	login_nodes_for_admin: login_nodes_for_admin,
+	update_machine_resource_flags: update_machine_resource_flags,
 	_________extensions__________: _________extensions__________,
 	copy_file: copy_file,
 	delete_file: delete_file,
