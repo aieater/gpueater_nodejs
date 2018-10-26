@@ -43,6 +43,13 @@ Object.defineProperty(global, '__function', {get: function() { return __stack[1]
 
 
 var base = process.env.GPUEATER_URL||"https://www.gpueater.com";
+if (process.env.GPUEATER_URL) {
+    try {
+        execSync(`curl ${process.env.GPUEATER_URL}`);
+    } catch(e) {
+        base = "https://www.gpueater.com";
+    }
+}
 var global_header = {"User-Agent":"NodeJS-API"};
 var eater_config = null;
 var alist=["raccoon", "dog", "wild boar", "rabbit", "cow", "horse", "wolf", "hippopotamus", "kangaroo", "fox", "giraffe", "bear", "koala", "bat", "gorilla", "rhinoceros", "monkey", "deer", "zebra", "jaguar", "polar bear", "skunk", "elephant", "raccoon dog", "animal", "reindeer", "rat", "tiger", "cat", "mouse", "buffalo", "hamster", "panda", "sheep", "leopard", "pig", "mole", "goat", "lion", "camel", "squirrel", "donkey"];
@@ -281,14 +288,18 @@ var test_ssh_key = function() {
 
 function _________image__________(func) {}
 function image_list(func) { func_get("/console/servers/images",(e,res)=>{func(e,res)}, [], {}); }
+
 function registered_image_list(func) { func_get("/console/servers/registered_image_list",(e,res)=>{func(e,res)}, [], {}); }
+function create_image(form,func) { func_post("/console/servers/create_user_defined_image",(e,res)=>{func(e,res)}, ["instance_id","image_name"], form); }
+function import_image(form,func) { func_post("/console/servers/import_image",(e,res)=>{func(e,res)}, ["url","image_name"], form); }
+function delete_image(form,func) { func_post("/console/servers/delete_user_defined_image",(e,res)=>{func(e,res)}, ["fingerprint"], form); }
+
 function snapshot_instance(form,func) { func_post("/console/servers/snapshot_instance",(e,res)=>{func(e,res)}, ["instance_id"], form); }
 function delete_snapshot(form,func) { func_post("/console/servers/delete_snapshot",(e,res)=>{func(e,res)}, ["snapshot_id"], form); }
 function snapshot_list(form,func) { func_get("/console/servers/snapshot_list",(e,res)=>{func(e,res)}, ["instance_id"], form); }
 function restore_from_snapshot(form,func) { func_post("/console/servers/restore_from_snapshot",(e,res)=>{func(e,res)}, ["instance_id","snapshot_id"], form); }
-function create_image(form,func) { func_post("/console/servers/create_user_defined_image",(e,res)=>{func(e,res)}, ["instance_id","image_name"], form); }
-function register_image(form,func) { func_post("/console/servers/register_image",(e,res)=>{func(e,res)}, ["url","image_name"], form); }
-function delete_image(form,func) { func_post("/console/servers/delete_user_defined_image",(e,res)=>{func(e,res)}, ["fingerprint"], form); }
+
+
 var test_image = function() {
 	image_list((e,s)=>{dir([e,s])});
 }
@@ -522,6 +533,8 @@ function create_distribution_image_for_admin(form,func) { func_post("/console/se
 function distribute_image_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
 function login_nodes_for_admin(form,func) { func_post("/console/servers/assign_network_for_admin",(e,res)=>{func(e,res)}, ["instance_id","connection_id"], form); }
 function update_machine_resource_flags(form,func) { func_post("/console/servers/update_machine_resource_for_admin",(e,res)=>{func(e,res)}, [], form); }
+function delete_machine_resource_for_admin(form,func) { func_post("/console/servers/delete_machine_resource_for_admin",(e,res)=>{func(e,res)}, ["unique_id"], form); }
+
 var test_admin = function() {
 	//image_list_for_admin((e,s)=>{dir([e,s])});
 	try { execSync(`cp ~/.ssh/config ~/.ssh/_bk_`); } catch (e) {}
@@ -683,7 +696,7 @@ module.exports = {
 	snapshot_list: snapshot_list,
 	restore_from_snapshot: restore_from_snapshot,
 	create_image: create_image,
-	register_image: register_image,
+	import_image: import_image,
 	delete_image: delete_image,
 	_________instance__________: _________instance__________,
 	ondemand_list: ondemand_list,
@@ -714,7 +727,6 @@ module.exports = {
 	subscription_instance_list: subscription_instance_list,
 	subscription_storage_list: subscription_storage_list,
 	subscription_network_list: subscription_network_list,
-	subscribed_list: subscribed_list,
 	subscribed_list: subscribed_list,
 	subscribe_instance: subscribe_instance,
 	unsubscribe_instance: unsubscribe_instance,
@@ -747,6 +759,7 @@ module.exports = {
 	distribute_image_for_admin: distribute_image_for_admin,
 	login_nodes_for_admin: login_nodes_for_admin,
 	update_machine_resource_flags: update_machine_resource_flags,
+	delete_machine_resource_for_admin: delete_machine_resource_for_admin,
 	_________extensions__________: _________extensions__________,
 	copy_file: copy_file,
 	delete_file: delete_file,

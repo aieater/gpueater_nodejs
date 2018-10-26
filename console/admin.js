@@ -293,26 +293,36 @@ function do_action(f) {
                 if (!slist[n]) { printe(`Invalid number.\n`);process.exit(9);}
                 let m = slist[n];
                 print(` Selected => ${m.server_label}`);
-                let flags = ['active','special_node','buffer_flag','subscription_flag','development_flag','managed_mining_flag'];
+                let flags = ['active','special_node','buffer_flag','subscription_flag','development_flag','managed_mining_flag', 'delete'];
                 let index = 0;
                 print(` Status : ${PR(MARK2[m.elapsed_time<5*60?1:0],10)}`);
-                for (let k in flags) { print(`${PR(index++,2)} : ${PL(flags[k],20)} : ${MARK[m[flags[k]]]}`);}
+                for (let k in flags) { print(`${PR(index++,2)} : ${PL(flags[k],20)} : ${MARK[m[flags[k]]]==null?"":MARK[m[flags[k]]]}`);}
                 n = ask(`Which flag > `);
                 if (!flags[n]) { printe(`Invalid number.\n`);process.exit(9);}
-                m[flags[n]] = m[flags[n]] ? 0 : 1;
-                let bk_m = m;
-                g.update_machine_resource_flags(m,(e,res)=>{
-                    if (e) printe(e);
-                    mflag_list({display:false},(e,slist)=>{
-                        for (let k in slist) {
-                            let m = slist[k];
-                            if (bk_m.unique_id == m.unique_id) {
-                                print(`${PR(m.server_label,25)}: ${PR(MARK2[m.elapsed_time<5*60?1:0],10)} NT(${NTS[m.node_type]?NTS[m.node_type]:m.node_type}) : Active${DS}${MARK[m.active]}${DE} : SP${DS}${MARK[m.special_node]}${DE} : Buf${DS}${MARK[m.buffer_flag]}${DE} : Subsc${DS}${MARK[m.subscription_flag]}${DE} : Dev${DS}${MARK[m.development_flag]}${DE} : Cry${DS}${MARK[m.managed_mining_flag]}${DE} : ${STRIKE[m.special_node]}${m.device01?m.device01:''}${RESET}`);
-                                break;
-                            }
+                if (flags[n] == 'delete') {
+                    console.dir(m);
+                    g.delete_machine_resource_for_admin({unique_id:m.unique_id},(e,s)=>{
+                        if (e) printe(e);
+                        else {
+                            print(`Deleted ${util.inspect(s)}`);
                         }
                     });
-                });
+                }  else {
+                    m[flags[n]] = m[flags[n]] ? 0 : 1;
+                    let bk_m = m;
+                    g.update_machine_resource_flags(m,(e,res)=>{
+                        if (e) printe(e);
+                        mflag_list({display:false},(e,slist)=>{
+                            for (let k in slist) {
+                                let m = slist[k];
+                                if (bk_m.unique_id == m.unique_id) {
+                                    print(`${PR(m.server_label,25)}: ${PR(MARK2[m.elapsed_time<5*60?1:0],10)} NT(${NTS[m.node_type]?NTS[m.node_type]:m.node_type}) : Active${DS}${MARK[m.active]}${DE} : SP${DS}${MARK[m.special_node]}${DE} : Buf${DS}${MARK[m.buffer_flag]}${DE} : Subsc${DS}${MARK[m.subscription_flag]}${DE} : Dev${DS}${MARK[m.development_flag]}${DE} : Cry${DS}${MARK[m.managed_mining_flag]}${DE} : ${STRIKE[m.special_node]}${m.device01?m.device01:''}${RESET}`);
+                                    break;
+                                }
+                            }
+                        });
+                    });
+                }
             }
         });
     } else if (f == 'change_mflags') { //@FUNC@ {"description":"Change flag.","administrator":true, "hide":true}
@@ -356,7 +366,7 @@ function do_action(f) {
                         ins = clist[n];
                     }
                 }
-                if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+                if (!ins) { printe(` Error: Invalid item => "${n}"`);process.exit(9); }
 
                 let mm = ins;
                 let param = {privateKey:path.join(HOME,'.ssh',`brain_master_key.pem`),port:mm.sshd_port,user:mm.sshd_user,host:mm.network_ipv6?mm.network_ipv6:mm.network_ipv4};

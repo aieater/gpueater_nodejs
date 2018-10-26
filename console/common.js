@@ -265,14 +265,13 @@ function select_instance(func) {
 			let n = null;
 			let ins = null;
 			if (arg) {
-				for (let k in res) {
-					if (res[k].tag == arg) { ins = res[k];break;}
-				}
+                for (let k in res) if (res[k].tag == arg) { ins = res[k];break;}
+                if (ins == null) ins = res[arg];
 			} else {
 				n = ask(`Select instance > `);
 				ins = res[n];
 			}
-			if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+			if (!ins) { printe(` Error: "Invalid item" => "${n}"`);process.exit(9); }
 			print('');
 			selected(ins);
 			print('');
@@ -291,9 +290,8 @@ function select_instance_auto(func) {
 			let n = null;
 			let ins = null;
 			if (arg) {
-				for (let k in res) {
-					if (res[k].tag == arg) { ins = res[k];break;}
-				}
+                for (let k in res) if (res[k].tag == arg) { ins = res[k];break;}
+                if (ins == null) ins = res[arg];
 			} else {
 				if (argv.length == 0 && res.length == 1) {
 					ins = res[0];
@@ -302,7 +300,7 @@ function select_instance_auto(func) {
 					ins = res[n];
 				}
 			}
-			if (!ins) { printe(` Error: "Invalid product number" => "${n}"`);process.exit(9); }
+			if (!ins) { printe(` Error: "Invalid item" => "${n}"`);process.exit(9); }
 			print('');
 			selected(ins);
 			print('');

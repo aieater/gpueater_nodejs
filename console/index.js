@@ -32,6 +32,7 @@ var actions = [
 	require('./network'),
 	require('./payment'),
 	require('./extension'),
+	require('./docker'),
 	require('./admin'),
 ];
 for (let k in common) { let v = common[k]; eval(`${k}=${v}`); }
