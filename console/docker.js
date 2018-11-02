@@ -109,34 +109,6 @@ if (require.main === module) {
 
 /* @@ DESCRPTIONS @@ START */
 const descriptions = [
-  { key: '__________extension__________',
-  value: { name: '__________extension__________' } },
-  { key: 'login',
-  value: { description: 'Login to instance.', name: 'login' } },
-  { key: 'get',
-  value: { description: 'Get a file from host.', name: 'get' } },
-  { key: 'put',
-  value: { description: 'Put a file to host.', name: 'put' } },
-  { key: 'cmd',
-  value: { description: 'Do any command on instance.', name: 'cmd' } },
-  { key: 'ls',
-  value: { description: 'File list on remote.', name: 'ls' } },
-  { key: 'sync',
-  value: { description: 'Synchronize files via rsync.', name: 'sync' } },
-  { key: 'tunnel',
-  value:
-   { description: 'Port forwarding local to remote.',
-     name: 'tunnel' } },
-  { key: 'jupyter',
-  value:
-   { description: 'Start jupyter and port forward.',
-     name: 'jupyter' } },
-  { key: 'version',
-  value: { description: 'Version of client.', name: 'version' } },
-  { key: 'help',
-  value: { description: 'Display help.', name: 'help' } },
-  { key: 'upgrade',
-  value: { description: 'Upgrade API self.', name: 'upgrade' } },
 ];
 /* @@ DESCRPTIONS @@ END */
 
