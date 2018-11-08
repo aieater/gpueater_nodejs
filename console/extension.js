@@ -48,69 +48,58 @@ function do_action(f) {
             }
         });
     } else if (f == 'get') { //@FUNC@ {"description":"Get a file from host."}
-        let second = argv.shift();
-        if (second) {
-            print(` Path => "${second}"`);
-            print(``);
-            let source = second;
-            let dest = argv.shift();
-            if (!dest) dest = ".";
-            instance_list((e,res)=>{
-                if (e) printe(e);
-                else {
-                    if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);}
-                    print(``);
-                    let n = 0;
-                    if (res.length != 1) {
-                        n = ask(`Which instance? > `);
-                    }
-                    print(``);
-                    let ins = res[n];
-                    if (!ins) { printe(` Error: "Invalid instance number" => "${n}"`);process.exit(9); }
-                    let cmd = `scp -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${ins.sshd_user}@${ins.ipv4}:${source} ${dest} \n`;
-                    print(``);
-                    print(execSync(cmd).toString());
-                    print(`remote: "${source}" => local: "${dest}"`);
-                    print(``);
-                }
-            });
 
-        } else {
-            print(`Error: Invalid arguments`)
-            print(`[Command] get [path]`)
-        }
-    } else if (f == 'put') { //@FUNC@ {"description":"Put a file to host."}
-        let second = argv.shift();
-        if (second) {
-            print(` Path => "${second}"`);
-            print(``);
-            let source = second;
-            let dest = argv.shift();
-            if (!dest) dest = ".";
-            instance_list((e,res)=>{
-                if (e) printe(e);
-                else {
-                    if (res.length == 0) { printe(`There is no instance.\n`);process.exit(9);}
+        select_instance((e,ins)=>{
+            if (e) printe(e);
+            else {
+                let second = argv.shift();
+                if (second) {
+                    print(` Path => "${second}"`);
                     print(``);
-                    let n = 0;
-                    if (res.length != 1) {
-                        n = ask(`Which instance? > `);
-                    }
-                    print(``);
-                    let ins = res[n];
-                    if (!ins) { printe(` Error: "Invalid instance number" => "${n}"`);process.exit(9); }
-                    let cmd = `scp -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${source} ${ins.sshd_user}@${ins.ipv4}:${dest} \n`;
+                    let source = second;
+                    let dest = argv.shift();
+                    if (!dest) dest = ".";
+                    let cmd = `scp -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${ins.sshd_user}@${ins.ipv4}:${source} ${dest} \n`;
                     print(``);
                     print(execSync(cmd).toString());
                     print(`local: "${source}" => remote: "${dest}"`);
                     print(``);
+                } else {
+                    print(``);
+                    print(`Error: Invalid arguments`);
+                    print(``);
+                    print(` > gpueater get <INSTANCE TAG or NUMBER> <SOURCE PATH> <DESTINATION PATH>`);
+                    print(``);
                 }
-            });
+            }
+        });
+    } else if (f == 'put') { //@FUNC@ {"description":"Put a file to host."}
+        select_instance((e,ins)=>{
+            if (e) printe(e);
+            else {
+                let second = argv.shift();
+                if (second) {
+                    print(` Path => "${second}"`);
+                    print(``);
+                    let source = second;
+                    let dest = argv.shift();
+                    if (!dest) dest = ".";
+                    let cmd = `scp -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${source} ${ins.sshd_user}@${ins.ipv4}:${dest} \n`;
+                    print(``);
+                    print(execSync(cmd).toString());
+                    print(`remote: "${source}" => local: "${dest}"`);
+                    print(``);
+                } else {
+                    print(``);
+                    print(`Error: Invalid arguments`);
+                    print(``);
+                    print(` > gpueater put <INSTANCE TAG or NUMBER> <SOURCE PATH> <DESTINATION PATH>`);
+                    print(``);
+                }
+            }
+        });
 
-        } else {
-            print(`Error: Invalid arguments`)
-            print(`[Command] put [path]`)
-        }
+
     } else if (f == 'cmd') { //@FUNC@ {"description":"Do any command on instance."}
         select_instance_auto((e,ins)=>{
             let icmd = argv.length > 0 ? argv.join(" ") : ask(" Command > ");
@@ -147,7 +136,7 @@ function do_action(f) {
 
         } else {
             print(`Error: Invalid arguments`)
-            print(`[Command] ls [Path]`)
+            print(`gpueater ls <PATH>`)
         }
     } else if (f == 'sync') { //@FUNC@ {"description":"Synchronize files via rsync."}
     } else if (f == 'tunnel') { //@FUNC@ {"description":"Port forwarding local to remote."}
@@ -196,7 +185,7 @@ function do_action(f) {
         });
 
     } else if (f == 'version') { //@FUNC@ {"description":"Version of client."}
-        /*@@VERSION_START@@*/print("v1.5.3")/*@@VERSION_END@@*/
+        /*@@VERSION_START@@*/print("v1.5.4")/*@@VERSION_END@@*/
     } else if (f == 'help') { //@FUNC@ {"description":"Display help."}
         display_help();
     } else if (f == 'upgrade') { //@FUNC@ {"description":"Upgrade API self."}
