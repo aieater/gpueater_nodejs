@@ -23,7 +23,7 @@ const HOME = os.homedir();
 const TMP = os.tmpdir();
 const COOKIE_PATH = path.join(TMP,`gpueater_cookie.txt`);
 const CONFIG_HASH_PATH = path.join(TMP,`gpueater_config_hash.txt`);
-const FOEVER = false;
+const FOEVER = true;
 
 Object.defineProperty(global, '__stack', {
 get: function() {
@@ -45,7 +45,7 @@ Object.defineProperty(global, '__function', {get: function() { return __stack[1]
 var base = process.env.GPUEATER_URL||"https://www.gpueater.com";
 if (process.env.GPUEATER_URL) {
     try {
-        execSync(`curl ${process.env.GPUEATER_URL}`);
+        execSync(`curl -s ${process.env.GPUEATER_URL}`);
     } catch(e) {
         base = "https://www.gpueater.com";
     }
@@ -103,7 +103,7 @@ var func_get = function(api,func,required_fields=[],query={}, e=null, try_cnt=2)
 	info(api);
     if (try_cnt <= 0) { func(`Request failed.`); return;}
 	for (let k in required_fields) { if (!(required_fields[k] in query)) { func(`Required field => ${required_fields[k]}`); return; } }
-	req({url: base+api, headers:global_header, qs:query, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
+	req(base+api,{timeout: 1000*60*10, headers:global_header, qs:query, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
 		if (e) { func(e); }
 		else {
 			if (res.request.uri.path == "/") {
@@ -125,7 +125,7 @@ var func_post = function(api,func,required_fields=[],form={}, e=null, try_cnt=2)
 	info(api);
     if (try_cnt <= 0) { func(`Request failed.`); return;}
 	for (let k in required_fields) { if (!(required_fields[k] in form)) { func(`Required field => ${required_fields[k]}`); return; } }
-	req.post({url: base+api, headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
+	req.post({url: base+api, timeout: 1000*60*5, headers:global_header, form:form, resolveWithFullResponse:true, forever:FOEVER },function(e, res, body) {
 		if (e) { func(e); }
 		else {
 			if (res.request.uri.path == "/") {

@@ -59,7 +59,7 @@ function do_action(f) {
                     let source = second;
                     let dest = argv.shift();
                     if (!dest) dest = ".";
-                    let cmd = `scp -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${ins.sshd_user}@${ins.ipv4}:${source} ${dest} \n`;
+                    let cmd = `scp -r -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${ins.sshd_user}@${ins.ipv4}:${source} ${dest} \n`;
                     print(``);
                     print(execSync(cmd).toString());
                     print(`local: "${source}" => remote: "${dest}"`);
@@ -84,7 +84,7 @@ function do_action(f) {
                     let source = second;
                     let dest = argv.shift();
                     if (!dest) dest = ".";
-                    let cmd = `scp -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${source} ${ins.sshd_user}@${ins.ipv4}:${dest} \n`;
+                    let cmd = `scp -r -i ~/.ssh/${ins.ssh_key_file_name}.pem -P ${ins.sshd_port} -r ${source} ${ins.sshd_user}@${ins.ipv4}:${dest} \n`;
                     print(``);
                     print(execSync(cmd).toString());
                     print(`remote: "${source}" => local: "${dest}"`);
