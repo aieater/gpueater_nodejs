@@ -185,7 +185,7 @@ function do_action(f) {
         });
 
     } else if (f == 'version') { //@FUNC@ {"description":"Version of client."}
-        /*@@VERSION_START@@*/print("v1.5.4")/*@@VERSION_END@@*/
+        /*@@VERSION_START@@*/print("v1.5.5")/*@@VERSION_END@@*/
     } else if (f == 'help') { //@FUNC@ {"description":"Display help."}
         display_help();
     } else if (f == 'upgrade') { //@FUNC@ {"description":"Upgrade API self."}
