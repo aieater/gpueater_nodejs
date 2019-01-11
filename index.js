@@ -55,34 +55,12 @@ var eater_config = null;
 var alist=["raccoon", "dog", "wild boar", "rabbit", "cow", "horse", "wolf", "hippopotamus", "kangaroo", "fox", "giraffe", "bear", "koala", "bat", "gorilla", "rhinoceros", "monkey", "deer", "zebra", "jaguar", "polar bear", "skunk", "elephant", "raccoon dog", "animal", "reindeer", "rat", "tiger", "cat", "mouse", "buffalo", "hamster", "panda", "sheep", "leopard", "pig", "mole", "goat", "lion", "camel", "squirrel", "donkey"];
 var blist=["happy", "glad", "comfortable", "pleased", "delighted", "relieved", "calm", "surprised", "exciting"];
 
-try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (e) {
-	try { eater_config = JSON.parse(fs.readFileSync(path.join(HOME,".eater")).toString()); } catch (e) {
-		console.error(`You must prepare ${path.join(HOME,".eater")} or .eater file.`);
-		console.info(`Setup GPUEater config to ${path.join(HOME,".eater")} file.`);
-		const readlineSync = require('readline-sync');
-		let email = readlineSync.question('email: ');
-		let pass = readlineSync.question('password: ', {hideEchoBack: true});
-		let obj = {gpueater:{email:email,password:pass}};
-		fs.writeFileSync(path.join(HOME,".eater"),JSON.stringify(obj));
-		console.info(`GPUEater config saved to ${path.join(HOME,".eater")}.`);
-		eater_config = obj;
-	}
-}
 
-let stored_hash = "A";
-let hash = "B";
-try {stored_hash = fs.readFileSync(CONFIG_HASH_PATH);} catch (e) {}
-hash = crypto.createHmac('sha256', 'dummy').update(JSON.stringify(eater_config)).digest('hex');
-
-if (stored_hash == hash) {
-	try { global_header['Cookie'] = fs.readFileSync(COOKIE_PATH);} catch (e) { }
-} else {
-	fs.writeFileSync(CONFIG_HASH_PATH,hash);
-}
 
 
 
 let login = function(func) {
+	if (eater_config == null) {load_config();}
 	info(`POST URL:"${base}/api_login"`);
 	req({url: base+"/api_login", method: 'POST', form: { email:eater_config.gpueater.email, password:eater_config.gpueater.password }, resolveWithFullResponse: true},function(error, response, body){
 		if (error) {
@@ -653,7 +631,35 @@ var test_extention = function() {
 		login_instance(ins,(e,s)=>{dir([e,s])});
 	});
 }
+function load_config(params={interactive:true}) {
+	try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (e) {
+		try { eater_config = JSON.parse(fs.readFileSync(path.join(HOME,".eater")).toString()); } catch (e) {
+			console.error(`You must prepare ${path.join(HOME,".eater")} or .eater file.`);
+			console.info(`Setup GPUEater config to ${path.join(HOME,".eater")} file.`);
+			if (params.interactive) {
+				const readlineSync = require('readline-sync');
+				let email = readlineSync.question('email: ');
+				let pass = readlineSync.question('password: ', {hideEchoBack: true});
+				let obj = {gpueater:{email:email,password:pass}};
+				fs.writeFileSync(path.join(HOME,".eater"),JSON.stringify(obj));
+				console.info(`GPUEater config saved to ${path.join(HOME,".eater")}.`);
+				eater_config = obj;
+			} else {
+				throw "Could not load a config file.";
+			}
+		}
+	}
+	let stored_hash = "A";
+	let hash = "B";
+	try {stored_hash = fs.readFileSync(CONFIG_HASH_PATH);} catch (e) {}
+	hash = crypto.createHmac('sha256', 'dummy').update(JSON.stringify(eater_config)).digest('hex');
 
+	if (stored_hash == hash) {
+		try { global_header['Cookie'] = fs.readFileSync(COOKIE_PATH);} catch (e) { }
+	} else {
+		fs.writeFileSync(CONFIG_HASH_PATH,hash);
+	}
+}
 
 if (require.main === module) {
 	function generate_source() {
@@ -768,4 +774,5 @@ module.exports = {
 	synchronize_files: synchronize_files,
 	login_instance: login_instance,
 	tunnel: tunnel,
+	load_config: load_config,
 }

@@ -26,6 +26,7 @@
   "homepage": "https://github.com/aieater/gpueater_nodejs#readme",
   "dependencies": {
     "async": "^2.6.1",
+    "readline-sync": "^1.4.9",
     "request": "^2.87.0",
     "scp2": "^0.5.0",
     "ssh2": "^0.6.1"

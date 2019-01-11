@@ -18,7 +18,7 @@ const async = require('async');
 
 function func(){}
 //instance_description
-
+gpueater.load_config({intaractive:false});
 gpueater.invoice_list((e,res)=>{
     if (e) console.error(e);
     else {
@@ -244,5 +244,7 @@ function test() {
 			t(do_test);
 		}
 	}
-	do_test();
+	//do_test();
 }
+
+
