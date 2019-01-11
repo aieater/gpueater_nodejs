@@ -25,6 +25,9 @@ const COOKIE_PATH = path.join(TMP,`gpueater_cookie.txt`);
 const CONFIG_HASH_PATH = path.join(TMP,`gpueater_config_hash.txt`);
 const FOEVER = true;
 
+var global_params = {interactive:true};
+
+
 Object.defineProperty(global, '__stack', {
 get: function() {
         var orig = Error.prepareStackTrace;
@@ -631,12 +634,15 @@ var test_extention = function() {
 		login_instance(ins,(e,s)=>{dir([e,s])});
 	});
 }
-function load_config(params={interactive:true}) {
+function set_params(params) {
+	global_params = Object.assign(global_params,params);
+}
+function load_config() {
 	try { eater_config = JSON.parse(fs.readFileSync(`.eater`).toString()); } catch (e) {
 		try { eater_config = JSON.parse(fs.readFileSync(path.join(HOME,".eater")).toString()); } catch (e) {
 			console.error(`You must prepare ${path.join(HOME,".eater")} or .eater file.`);
 			console.info(`Setup GPUEater config to ${path.join(HOME,".eater")} file.`);
-			if (params.interactive) {
+			if (global_params.interactive) {
 				const readlineSync = require('readline-sync');
 				let email = readlineSync.question('email: ');
 				let pass = readlineSync.question('password: ', {hideEchoBack: true});
@@ -775,4 +781,5 @@ module.exports = {
 	login_instance: login_instance,
 	tunnel: tunnel,
 	load_config: load_config,
+	set_params: set_params,
 }
