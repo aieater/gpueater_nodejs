@@ -213,7 +213,7 @@ g.image_list((error,res)=>{
 | ---- | ---- | ---- | ---- |
 |  v0.8  |  image_list()  |  | Listing all OS images |
 |  v1.5  |  registered_image_list()  |  | Listing all user defined OS images |
-|  v1.5  |  create_image(form)  | instance_id, machine_resource_id |  Adding an user defined OS image |
+|  v1.5  |  create_image(form)  | image_name , instance_id, machine_resource_id |  Adding an user defined OS image |
 |  v1.5  |  delete_image(form)  | image |  Deleting an OS image |
 |  v2.0  |  snapshot_instance(form)  | instance_id, machine_resource_id |  Creating a snapshot |
 |  v2.0  |  delete_snapshot(form)  | instance_id, machine_resource_id |  Deleting a snapshot |
